@@ -1,0 +1,8 @@
+{
+  "name": "WeShare.Site",
+  "description": "A modern, responsive builder for digital business cards featuring glassmorphism design, QR code sharing, and instant previews.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}

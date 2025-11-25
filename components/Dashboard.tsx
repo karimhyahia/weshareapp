@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CardData, ContactSubmission } from '../types';
+import { CardData, ContactSubmission, UserSubscription } from '../types';
 import { CardPreview } from './CardPreview';
 import {
     LayoutGrid, Users, PieChart, Settings, Plus, Search, Filter,
@@ -18,6 +18,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { ImageCropper } from './ui/ImageCropper';
 import { uploadImage, supabase } from '../supabase';
 import { SubscriptionManager } from './SubscriptionManager';
+import { getUserSubscription } from '../subscriptionUtils';
 
 interface DashboardProps {
     sites: CardData[];
@@ -40,6 +41,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
     const [userEmail, setUserEmail] = useState(userProfile?.email || '');
     const [userName, setUserName] = useState(userProfile?.name || '');
     const [userAvatar, setUserAvatar] = useState(userProfile?.avatar || '');
+
+    // Subscription State
+    const [subscription, setSubscription] = useState<UserSubscription | null>(null);
 
     // Analytics & Contacts State
     const [analyticsData, setAnalyticsData] = useState({ views: 0, clicks: 0, ctr: 0 });
@@ -104,6 +108,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
         };
         fetchData();
     }, [activeView, sites]);
+
+    // Fetch user subscription
+    React.useEffect(() => {
+        const loadSubscription = async () => {
+            const sub = await getUserSubscription();
+            setSubscription(sub);
+        };
+        loadSubscription();
+    }, []);
 
     // Image Upload State
     const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -302,16 +315,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                 </div>
 
                 <div className="p-4 border-t border-slate-100">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
-                        <h4 className="font-bold text-sm mb-1">{t('dashboard.upgrade')}</h4>
-                        <p className="text-xs opacity-70 mb-3">{t('dashboard.upgradeDesc')}</p>
-                        <button
-                            onClick={handleUpgrade}
-                            className="w-full py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-semibold transition-colors"
-                        >
-                            {t('dashboard.viewPlans')}
-                        </button>
-                    </div>
+                    {/* Only show upgrade prompt for free users */}
+                    {subscription?.tierId === 'free' && (
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
+                            <h4 className="font-bold text-sm mb-1">{t('dashboard.upgrade')}</h4>
+                            <p className="text-xs opacity-70 mb-3">{t('dashboard.upgradeDesc')}</p>
+                            <button
+                                onClick={handleUpgrade}
+                                className="w-full py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-semibold transition-colors"
+                            >
+                                {t('dashboard.viewPlans')}
+                            </button>
+                        </div>
+                    )}
 
                     <div
                         className="flex items-center gap-3 mt-4 px-2 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"

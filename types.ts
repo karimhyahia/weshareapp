@@ -123,3 +123,59 @@ export interface CardData {
 
 export type Tab = 'editor' | 'preview';
 export type ViewMode = 'dashboard' | 'editor';
+
+// Subscription Types
+export type SubscriptionTierId = 'free' | 'pro' | 'business';
+export type BillingCycle = 'monthly' | 'yearly';
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
+
+export interface SubscriptionTier {
+  id: SubscriptionTierId;
+  name: string;
+  priceLifetime: number; // One-time payment for lifetime access
+  stripePriceId?: string; // Single Stripe price ID for one-time payment
+  features: Record<string, boolean>;
+  limits: {
+    maxCards: number;
+    maxLinks: number;
+    analyticsDays: number;
+    qrScansMonthly: number;
+    storageGb?: number;
+    teamMembers?: number;
+  };
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  tierId: SubscriptionTierId;
+  status: SubscriptionStatus | 'lifetime';
+  stripeCustomerId?: string;
+  stripePaymentIntentId?: string;
+  purchasedAt?: string;
+  amountPaid: number;
+}
+
+export interface UserSubscription {
+  subscriptionId: string;
+  tierId: SubscriptionTierId;
+  tierName: string;
+  status: SubscriptionStatus | 'lifetime';
+  purchasedAt?: string;
+  amountPaid: number;
+  features: Record<string, boolean>;
+  limits: SubscriptionTier['limits'];
+}
+
+export interface PaymentHistory {
+  id: string;
+  userId: string;
+  subscriptionId?: string;
+  stripePaymentIntentId?: string;
+  stripeInvoiceId?: string;
+  amount: number;
+  currency: string;
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded';
+  description?: string;
+  createdAt: string;
+}

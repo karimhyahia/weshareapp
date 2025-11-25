@@ -19,12 +19,15 @@ import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
 
 const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     const navigate = useNavigate();
+    const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+
     // State
     const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
     const [sites, setSites] = useState<CardData[]>([]);
     const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<{ name: string, email: string, avatar: string } | null>(null);
+    const [checkoutMessage, setCheckoutMessage] = useState<{type: 'success' | 'cancelled', show: boolean}>({ type: 'success', show: false });
 
     // Delete Modal State
     const [siteToDelete, setSiteToDelete] = useState<string | null>(null);
@@ -43,6 +46,23 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     useEffect(() => {
         fetchSites();
     }, []);
+
+    // Handle checkout success/cancel
+    useEffect(() => {
+        const checkoutStatus = searchParams.get('checkout');
+        if (checkoutStatus === 'success') {
+            setCheckoutMessage({ type: 'success', show: true });
+            // Refresh subscription data after successful payment
+            setTimeout(() => {
+                window.location.href = '/app'; // Reload to fetch updated subscription
+            }, 3000);
+        } else if (checkoutStatus === 'cancelled') {
+            setCheckoutMessage({ type: 'cancelled', show: true });
+            setTimeout(() => {
+                setCheckoutMessage(prev => ({ ...prev, show: false }));
+            }, 5000);
+        }
+    }, [searchParams]);
 
     const fetchSites = async () => {
         try {
@@ -305,6 +325,35 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     if (viewMode === 'dashboard') {
         return (
             <div className="min-h-screen font-sans text-slate-900 relative">
+                {/* Checkout Success/Cancel Message */}
+                {checkoutMessage.show && (
+                    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 ${
+                        checkoutMessage.type === 'success'
+                            ? 'bg-green-50 border-green-500 text-green-800'
+                            : 'bg-yellow-50 border-yellow-500 text-yellow-800'
+                    } border-2 rounded-xl p-4 shadow-lg`}>
+                        <div className="flex items-center gap-3">
+                            {checkoutMessage.type === 'success' ? (
+                                <>
+                                    <Check className="shrink-0" size={24} />
+                                    <div>
+                                        <div className="font-bold">Payment Successful! 🎉</div>
+                                        <div className="text-sm">Your lifetime access has been activated. Refreshing...</div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="shrink-0 w-6 h-6 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">!</div>
+                                    <div>
+                                        <div className="font-bold">Payment Cancelled</div>
+                                        <div className="text-sm">No worries! You can upgrade anytime.</div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <Dashboard
                     sites={sites}
                     onEdit={handleEditSite}

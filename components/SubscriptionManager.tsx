@@ -70,25 +70,30 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
 
   const tier = SUBSCRIPTION_TIERS.find(t => t.id === subscription.tierId);
   const isFree = subscription.tierId === 'free';
-  const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+  const isLifetime = subscription.status === 'lifetime';
+  const isActive = subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'lifetime';
 
   return (
     <div className="space-y-6">
       {/* Current Plan Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-900 to-slate-700 p-6 text-white">
+        <div className={`${isLifetime ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gradient-to-r from-slate-900 to-slate-700'} p-6 text-white`}>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={24} />
-                <h2 className="text-2xl font-bold">{tier?.name} Plan</h2>
+                <h2 className="text-2xl font-bold">{tier?.name || subscription.tierId.toUpperCase()}</h2>
               </div>
-              <p className="text-slate-300">
-                {isFree ? 'Free forever' : `Billed ${subscription.billingCycle}`}
+              <p className={isLifetime ? 'text-blue-100' : 'text-slate-300'}>
+                {isFree
+                  ? 'Free forever'
+                  : isLifetime
+                    ? `Lifetime Access • €${subscription.amountPaid || (subscription.tierId === 'pro' ? '89' : '249')} one-time`
+                    : `Billed ${subscription.billingCycle || 'monthly'}`}
               </p>
             </div>
-            <div className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusBadgeColor(subscription.status)}`}>
-              {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+            <div className={`px-4 py-2 rounded-full text-sm font-bold ${isLifetime ? 'bg-white/20 text-white' : getStatusBadgeColor(subscription.status)}`}>
+              {isLifetime ? '✨ Lifetime' : subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
             </div>
           </div>
         </div>
@@ -132,7 +137,23 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
           )}
 
           {/* Subscription Details */}
-          {!isFree && subscription.currentPeriodEnd && (
+          {!isFree && isLifetime && subscription.purchasedAt && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="text-blue-600" size={20} />
+                <span className="text-slate-600">Purchased on:</span>
+                <span className="font-bold text-slate-900">
+                  {new Date(subscription.purchasedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!isFree && !isLifetime && subscription.currentPeriodEnd && (
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2 text-slate-600">
                 <Calendar size={18} />
@@ -213,6 +234,14 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
                 <Crown size={18} className="mr-2" />
                 Upgrade to Pro
               </Button>
+            ) : isLifetime ? (
+              <div className="flex-1 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-blue-700 font-bold">
+                  <CheckCircle2 size={20} />
+                  <span>Lifetime Access Active</span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">No recurring billing required</p>
+              </div>
             ) : (
               <Button variant="secondary" className="flex-1" onClick={handleManageSubscription}>
                 <CreditCard size={18} className="mr-2" />

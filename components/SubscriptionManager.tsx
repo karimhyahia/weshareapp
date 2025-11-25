@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { UserSubscription, SubscriptionTier } from '../types';
 import {
   getUserSubscription,
-  openCustomerPortal,
   SUBSCRIPTION_TIERS,
   getStatusBadgeColor,
 } from '../subscriptionUtils';
@@ -35,12 +34,9 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
     }
   };
 
+  // Not needed for lifetime deals - no recurring billing to manage
   const handleManageSubscription = async () => {
-    setError(null);
-    const result = await openCustomerPortal();
-    if (!result.success) {
-      setError(result.error || 'Failed to open billing portal');
-    }
+    setError('Lifetime deals do not require billing management.');
   };
 
   if (loading) {

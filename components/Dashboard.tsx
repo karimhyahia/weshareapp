@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CardData, ContactSubmission } from '../types';
 import { CardPreview } from './CardPreview';
 import {
@@ -212,8 +213,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
         }
     };
 
+    const navigate = useNavigate();
+
     const handleUpgrade = () => {
-        alert("Redirecting to payment provider...");
+        navigate('/upgrade');
     };
 
     const handleSaveProfile = async () => {

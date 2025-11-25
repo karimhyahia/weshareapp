@@ -9,6 +9,7 @@ import { PricingPage } from './components/PricingPage';
 import { PublicProfile } from './components/PublicProfile';
 import { supabase } from './supabase';
 import { OnboardingWizard } from './components/OnboardingWizard';
+import { UpgradePage } from './components/UpgradePage';
 
 export type PageState = 'landing' | 'features' | 'how-it-works' | 'pricing' | 'login' | 'signup';
 
@@ -82,6 +83,7 @@ export const Main: React.FC = () => {
             } />
 
             <Route path="/app" element={<DashboardLayout onLogout={async () => { await supabase.auth.signOut(); navigate('/'); }} />} />
+            <Route path="/upgrade" element={<UpgradePage onBack={() => navigate('/app')} />} />
             <Route path="/onboarding" element={<OnboardingWizard />} />
             <Route path="/u/:username" element={<PublicProfile />} />
 

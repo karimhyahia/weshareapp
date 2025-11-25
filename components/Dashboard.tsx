@@ -17,6 +17,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 
 import { ImageCropper } from './ui/ImageCropper';
 import { uploadImage, supabase } from '../supabase';
+import { SubscriptionManager } from './SubscriptionManager';
 
 interface DashboardProps {
     sites: CardData[];
@@ -719,21 +720,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                                 )}
 
                                 {/* Subscription Section */}
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="p-6 border-b border-slate-100">
-                                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                            <CreditCard size={18} /> Subscription
-                                        </h2>
-                                        <p className="text-sm text-slate-500 mt-1">Manage your plan and billing.</p>
-                                    </div>
-                                    <div className="p-6 flex items-center justify-between">
-                                        <div>
-                                            <div className="font-medium text-slate-900">Starter Plan</div>
-                                            <div className="text-sm text-slate-500">Free forever</div>
-                                        </div>
-                                        <Button onClick={handleUpgrade}>{t('dashboard.upgrade')}</Button>
-                                    </div>
-                                </div>
+                                <SubscriptionManager onUpgrade={handleUpgrade} />
 
                                 {/* Security Section */}
                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

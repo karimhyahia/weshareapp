@@ -30,7 +30,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     id: 'pro',
     name: 'Pro LTD',
     priceLifetime: 89,
-    stripePriceId: 'price_xxx', // Replace with actual Stripe price ID
+    stripePriceId: 'price_1SXJTN2EeXK7mLiF7sYKU680', // Pro Lifetime Deal
     features: {
       basicAnalytics: true,
       advancedAnalytics: true,
@@ -55,7 +55,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     id: 'business',
     name: 'Business LTD',
     priceLifetime: 249,
-    stripePriceId: 'price_yyy', // Replace with actual Stripe price ID
+    stripePriceId: 'price_1SXJUo2EeXK7mLiFDCXcvhXw', // Business Lifetime Deal
     features: {
       basicAnalytics: true,
       advancedAnalytics: true,

@@ -18,7 +18,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { ImageCropper } from './ui/ImageCropper';
 import { uploadImage, supabase } from '../supabase';
 import { SubscriptionManager } from './SubscriptionManager';
-import { getUserSubscription } from '../subscriptionUtils';
+import { getUserSubscription, canCreateCard, getUsageStats } from '../subscriptionUtils';
 
 interface DashboardProps {
     sites: CardData[];
@@ -44,6 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
 
     // Subscription State
     const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+    const [usageStats, setUsageStats] = useState<any>(null);
 
     // Analytics & Contacts State
     const [analyticsData, setAnalyticsData] = useState({ views: 0, clicks: 0, ctr: 0 });
@@ -109,14 +110,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
         fetchData();
     }, [activeView, sites]);
 
-    // Fetch user subscription
+    // Fetch user subscription and usage stats
     React.useEffect(() => {
         const loadSubscription = async () => {
             const sub = await getUserSubscription();
             setSubscription(sub);
+
+            // Load usage stats
+            const stats = await getUsageStats(sites.length);
+            setUsageStats(stats);
         };
         loadSubscription();
-    }, []);
+    }, [sites.length]);
 
     // Image Upload State
     const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -170,6 +175,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
     const [filterStatus, setFilterStatus] = useState<'all' | 'live' | 'draft'>('all');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
+
+    // Handle card creation with limit check
+    const handleCreateCard = async () => {
+        const check = await canCreateCard(sites.length);
+        if (!check.allowed) {
+            alert(check.message || 'Limit reached');
+            handleUpgrade();
+            return;
+        }
+        onCreate();
+    };
 
     // --- Aggregated Data Helpers ---
     // Merge legacy contacts with new DB contacts
@@ -356,7 +372,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                             {activeView === 'settings' && t('dashboard.settings')}
                         </h1>
                         {activeView === 'links' && (
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium hidden sm:inline-block">{filteredSites.length} Sites</span>
+                            <>
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium hidden sm:inline-block">{filteredSites.length} Sites</span>
+                                {usageStats && !usageStats.cards.unlimited && (
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium hidden sm:inline-block ${
+                                        usageStats.cards.percentage >= 100 ? 'bg-red-100 text-red-700' :
+                                        usageStats.cards.percentage >= 80 ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-blue-100 text-blue-700'
+                                    }`}>
+                                        {usageStats.cards.used}/{usageStats.cards.limit} Karten
+                                    </span>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -375,7 +402,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                                     />
                                 </div>
                                 {sites.length === 0 && (
-                                    <Button onClick={onCreate} size="sm" icon={<Plus size={16} />}>{t('dashboard.createNew')}</Button>
+                                    <Button onClick={handleCreateCard} size="sm" icon={<Plus size={16} />}>{t('dashboard.createNew')}</Button>
                                 )}
                             </>
                         )}
@@ -431,7 +458,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                                 {/* Create New Card Placeholder */}
                                 {sites.length === 0 && (
                                     <button
-                                        onClick={onCreate}
+                                        onClick={handleCreateCard}
                                         className="group relative aspect-[9/16] md:aspect-auto md:h-[420px] rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-4 hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-300"
                                     >
                                         <div className="w-16 h-16 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:scale-110 transition-all">

@@ -21,9 +21,12 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     },
     limits: {
       maxCards: 1,
-      maxLinks: 3,
+      maxLinks: 5,
       analyticsDays: 7,
       qrScansMonthly: 100,
+      maxServices: 0,
+      maxProjects: 0,
+      contactForm: false,
     },
   },
   {
@@ -44,11 +47,13 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       lifetimeAccess: true,
     },
     limits: {
-      maxCards: 999,
+      maxCards: 5,
       maxLinks: 999,
-      analyticsDays: 999999,
+      analyticsDays: 90,
       qrScansMonthly: 999999,
-      storageGb: 10,
+      maxServices: 10,
+      maxProjects: 10,
+      contactForm: true,
     },
   },
   {
@@ -80,8 +85,9 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       maxLinks: 999999,
       analyticsDays: 999999,
       qrScansMonthly: 999999,
-      storageGb: 999999,
-      teamMembers: 999,
+      maxServices: 999,
+      maxProjects: 999,
+      contactForm: true,
     },
   },
 ];
@@ -284,4 +290,63 @@ export function getLifetimeSavings(tier: SubscriptionTier): string {
   const monthsBreakEven = Math.ceil(tier.priceLifetime / monthlyEquivalent);
 
   return `Zahlt sich nach ${monthsBreakEven} Monaten ab`;
+}
+
+/**
+ * Check if user can create a new card
+ */
+export async function canCreateCard(currentCardCount: number): Promise<{ allowed: boolean; limit: number; message?: string }> {
+  const subscription = await getUserSubscription();
+  if (!subscription) {
+    return { allowed: false, limit: 0, message: 'No subscription found' };
+  }
+
+  const tier = getSubscriptionTier(subscription.tierId);
+  if (!tier) {
+    return { allowed: false, limit: 0, message: 'Invalid subscription tier' };
+  }
+
+  const maxCards = tier.limits.maxCards || 1;
+  const allowed = currentCardCount < maxCards;
+
+  return {
+    allowed,
+    limit: maxCards,
+    message: allowed ? undefined : `You've reached your limit of ${maxCards} card${maxCards > 1 ? 's' : ''}. Upgrade to create more!`,
+  };
+}
+
+/**
+ * Get usage stats for current subscription
+ */
+export async function getUsageStats(currentCardCount: number) {
+  const subscription = await getUserSubscription();
+  if (!subscription) return null;
+
+  const tier = getSubscriptionTier(subscription.tierId);
+  if (!tier) return null;
+
+  return {
+    cards: {
+      used: currentCardCount,
+      limit: tier.limits.maxCards || 1,
+      percentage: tier.limits.maxCards ? Math.round((currentCardCount / tier.limits.maxCards) * 100) : 0,
+      unlimited: tier.limits.maxCards >= 999999,
+    },
+    links: {
+      limit: tier.limits.maxLinks || 5,
+      unlimited: tier.limits.maxLinks >= 999,
+    },
+    services: {
+      limit: tier.limits.maxServices || 0,
+      allowed: (tier.limits.maxServices || 0) > 0,
+    },
+    projects: {
+      limit: tier.limits.maxProjects || 0,
+      allowed: (tier.limits.maxProjects || 0) > 0,
+    },
+    contactForm: {
+      allowed: tier.limits.contactForm || false,
+    },
+  };
 }

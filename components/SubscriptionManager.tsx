@@ -78,7 +78,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={24} />
-                <h2 className="text-2xl font-bold">{tier?.name || subscription.tierId.toUpperCase()}</h2>
+                <h2 className="text-2xl font-bold">{tier?.name || subscription.tierId?.toUpperCase() || 'Plan'}</h2>
               </div>
               <p className={isLifetime ? 'text-blue-100' : 'text-slate-300'}>
                 {isFree

@@ -105,7 +105,9 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack }) => {
         body: {
           priceId,
           userId: user.id,
+          email: user.email,
           tierId: planId,
+          mode: 'payment', // One-time payment for lifetime deals
         },
       });
 

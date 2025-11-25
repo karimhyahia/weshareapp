@@ -123,3 +123,65 @@ export interface CardData {
 
 export type Tab = 'editor' | 'preview';
 export type ViewMode = 'dashboard' | 'editor';
+
+// Subscription Types
+export type SubscriptionTierId = 'free' | 'pro' | 'business';
+export type BillingCycle = 'monthly' | 'yearly';
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
+
+export interface SubscriptionTier {
+  id: SubscriptionTierId;
+  name: string;
+  priceMonthly: number;
+  priceYearly: number;
+  stripePriceIdMonthly?: string;
+  stripePriceIdYearly?: string;
+  features: Record<string, boolean>;
+  limits: {
+    maxCards: number;
+    maxLinks: number;
+    analyticsDays: number;
+    qrScansMonthly: number;
+    storageGb?: number;
+    teamMembers?: number;
+  };
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  tierId: SubscriptionTierId;
+  billingCycle: BillingCycle;
+  status: SubscriptionStatus;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  trialEnd?: string;
+}
+
+export interface UserSubscription {
+  subscriptionId: string;
+  tierId: SubscriptionTierId;
+  tierName: string;
+  status: SubscriptionStatus;
+  billingCycle: BillingCycle;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  features: Record<string, boolean>;
+  limits: SubscriptionTier['limits'];
+}
+
+export interface PaymentHistory {
+  id: string;
+  userId: string;
+  subscriptionId?: string;
+  stripePaymentIntentId?: string;
+  stripeInvoiceId?: string;
+  amount: number;
+  currency: string;
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded';
+  description?: string;
+  createdAt: string;
+}

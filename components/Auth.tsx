@@ -25,7 +25,7 @@ export const Auth: React.FC<AuthProps> = ({ mode, onNavigate, onSuccess, onBack 
 
       try {
          if (mode === 'signup') {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                email,
                password,
                options: {
@@ -34,24 +34,46 @@ export const Auth: React.FC<AuthProps> = ({ mode, onNavigate, onSuccess, onBack 
                   },
                },
             });
+
             if (error) throw error;
-            // For now, we assume auto-login or email confirmation is not required for dev
-            // But typically signup sends a confirmation email.
-            // If Supabase is set to auto-confirm, this works.
-            // If not, we might need to tell user to check email.
-            alert('Account created! Please check your email to confirm your account, or sign in if auto-confirmed.');
-            onNavigate('login');
+
+            console.log('Signup response:', data);
+
+            // If email confirmation is disabled, user is auto-confirmed
+            if (data.user && data.session) {
+               // User is auto-confirmed and logged in
+               console.log('User auto-confirmed, redirecting to app');
+               onSuccess();
+            } else {
+               // Email confirmation required
+               alert('Please check your email to confirm your account.');
+               onNavigate('login');
+            }
          } else {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                email,
                password,
             });
-            if (error) throw error;
+
+            if (error) {
+               console.error('Login error:', error);
+               throw error;
+            }
+
+            console.log('Login successful:', data);
             onSuccess();
          }
       } catch (err: any) {
          console.error('Auth error:', err);
-         setError(err.message || 'An error occurred');
+
+         // Better error messages
+         if (err.message?.includes('Invalid login credentials')) {
+            setError('Invalid email or password. Please try again.');
+         } else if (err.message?.includes('Email not confirmed')) {
+            setError('Please confirm your email address first.');
+         } else {
+            setError(err.message || 'Authentication failed. Please try again.');
+         }
       } finally {
          setLoading(false);
       }

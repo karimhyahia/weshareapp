@@ -12,6 +12,8 @@ interface SubscriptionManagerProps {
   onUpgrade?: () => void;
 }
 
+// Force rebuild - timestamp: 2025-11-25
+
 export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgrade }) => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);

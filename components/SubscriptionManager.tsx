@@ -26,8 +26,12 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
     setError(null);
     try {
       const sub = await getUserSubscription();
+      console.log('SubscriptionManager received subscription:', sub);
+      console.log('Subscription tierId:', sub?.tierId);
+      console.log('Subscription status:', sub?.status);
       setSubscription(sub);
     } catch (err: any) {
+      console.error('Error loading subscription:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -64,6 +68,21 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
     );
   }
 
+  // Defensive checks for undefined properties
+  if (!subscription.tierId || !subscription.status) {
+    console.error('Subscription missing required properties:', subscription);
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+        <div className="text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Invalid Subscription Data</h3>
+          <p className="text-slate-600 mb-4">Subscription data is incomplete. Please try again.</p>
+          <Button onClick={loadSubscription}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
   const tier = SUBSCRIPTION_TIERS.find(t => t.id === subscription.tierId);
   const isFree = subscription.tierId === 'free';
   const isLifetime = subscription.status === 'lifetime';
@@ -89,7 +108,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
               </p>
             </div>
             <div className={`px-4 py-2 rounded-full text-sm font-bold ${isLifetime ? 'bg-white/20 text-white' : getStatusBadgeColor(subscription.status)}`}>
-              {isLifetime ? '✨ Lifetime' : subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+              {isLifetime ? '✨ Lifetime' : (subscription.status?.charAt(0)?.toUpperCase() || '') + (subscription.status?.slice(1) || '')}
             </div>
           </div>
         </div>

@@ -33,6 +33,19 @@ serve(async (req) => {
         break;
       }
 
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await handlePaymentSucceeded(paymentIntent);
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await handlePaymentFailed(paymentIntent);
+        break;
+      }
+
+      // Keep subscription handlers for future if you want to add them
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
@@ -43,18 +56,6 @@ serve(async (req) => {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionDeleted(subscription);
-        break;
-      }
-
-      case 'invoice.paid': {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaid(invoice);
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentFailed(invoice);
         break;
       }
 
@@ -75,7 +76,6 @@ serve(async (req) => {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;
   const tierId = session.metadata?.tier_id;
-  const billingCycle = session.metadata?.billing_cycle;
 
   if (!userId || !tierId) {
     console.error('Missing metadata in checkout session');
@@ -83,139 +83,134 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   const customerId = session.customer as string;
-  const subscriptionId = session.subscription as string;
+  const amountTotal = session.amount_total ? session.amount_total / 100 : 0;
 
-  // Update or create subscription in database
-  const { error } = await supabase
-    .from('subscriptions')
-    .upsert({
-      user_id: userId,
-      tier_id: tierId,
-      billing_cycle: billingCycle,
-      status: 'active',
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-    }, {
-      onConflict: 'user_id'
-    });
+  console.log(`Checkout completed for user ${userId}, tier ${tierId}, amount €${amountTotal}`);
 
-  if (error) {
-    console.error('Error updating subscription:', error);
-  } else {
-    console.log(`Subscription created/updated for user ${userId}`);
+  // For one-time payments (Lifetime Deals)
+  if (session.mode === 'payment') {
+    const paymentIntentId = session.payment_intent as string;
+
+    // Update subscription to lifetime status
+    const { error } = await supabase
+      .from('subscriptions')
+      .upsert({
+        user_id: userId,
+        tier_id: tierId,
+        status: 'lifetime',
+        stripe_customer_id: customerId,
+        stripe_payment_intent_id: paymentIntentId,
+        purchased_at: new Date().toISOString(),
+        amount_paid: amountTotal,
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      console.error('Error updating subscription:', error);
+    } else {
+      console.log(`Lifetime access granted to user ${userId} for tier ${tierId}`);
+    }
+
+    // Record payment
+    await recordPayment(userId, paymentIntentId, session.id, amountTotal, tierId, 'succeeded');
   }
 }
 
-async function handleSubscriptionChange(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata?.user_id;
-  const tierId = subscription.metadata?.tier_id;
-  const billingCycle = subscription.metadata?.billing_cycle;
+async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const userId = paymentIntent.metadata?.user_id;
+  const tierId = paymentIntent.metadata?.tier_id;
 
   if (!userId) {
-    console.error('No user_id in subscription metadata');
+    console.error('No user_id in payment intent metadata');
     return;
   }
 
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({
-      tier_id: tierId || 'free',
-      billing_cycle: billingCycle || 'monthly',
-      status: subscription.status,
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: subscription.customer as string,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
-    })
-    .eq('user_id', userId);
+  console.log(`Payment succeeded for user ${userId}`);
 
-  if (error) {
-    console.error('Error updating subscription:', error);
-  } else {
-    console.log(`Subscription updated for user ${userId}`);
-  }
+  // Already handled in checkout.session.completed, but log for safety
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata?.user_id;
+async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
+  const userId = paymentIntent.metadata?.user_id;
+  const tierId = paymentIntent.metadata?.tier_id;
 
   if (!userId) {
-    console.error('No user_id in subscription metadata');
+    console.error('No user_id in failed payment intent');
     return;
   }
 
-  // Downgrade to free tier
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({
-      tier_id: 'free',
-      status: 'canceled',
-      stripe_subscription_id: null,
-    })
-    .eq('user_id', userId);
+  console.log(`Payment failed for user ${userId}`);
 
-  if (error) {
-    console.error('Error canceling subscription:', error);
-  } else {
-    console.log(`Subscription canceled for user ${userId}`);
-  }
+  // Record failed payment
+  await recordPayment(
+    userId,
+    paymentIntent.id,
+    null,
+    paymentIntent.amount / 100,
+    tierId || 'unknown',
+    'failed'
+  );
+
+  // TODO: Send email notification to user about failed payment
 }
 
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
-
-  // Get subscription to find user_id
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const userId = subscription.metadata?.user_id;
-
-  if (!userId) {
-    console.error('No user_id found for invoice');
-    return;
-  }
-
-  // Get subscription from database
+async function recordPayment(
+  userId: string,
+  paymentIntentId: string,
+  checkoutSessionId: string | null,
+  amount: number,
+  tierId: string,
+  status: string
+) {
+  // Get subscription
   const { data: subData } = await supabase
     .from('subscriptions')
     .select('id')
     .eq('user_id', userId)
     .single();
 
-  // Record payment
-  await supabase
+  // Record payment in history
+  const { error } = await supabase
     .from('payment_history')
     .insert({
       user_id: userId,
       subscription_id: subData?.id,
-      stripe_payment_intent_id: invoice.payment_intent as string,
-      stripe_invoice_id: invoice.id,
-      amount: invoice.amount_paid / 100, // Convert from cents
-      currency: invoice.currency,
-      status: 'succeeded',
-      description: invoice.description || 'Subscription payment',
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_checkout_session_id: checkoutSessionId,
+      amount: amount,
+      currency: 'eur',
+      status: status,
+      tier_id: tierId,
+      description: `Lifetime access to ${tierId} tier`,
     });
 
-  console.log(`Payment recorded for user ${userId}`);
+  if (error) {
+    console.error('Error recording payment:', error);
+  } else {
+    console.log(`Payment recorded for user ${userId}: €${amount} (${status})`);
+  }
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+// Keep these for potential future subscription features
+async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.user_id;
-
   if (!userId) {
-    console.error('No user_id found for failed invoice');
+    console.error('No user_id in subscription metadata');
     return;
   }
 
-  // Update subscription status to past_due
-  await supabase
-    .from('subscriptions')
-    .update({ status: 'past_due' })
-    .eq('user_id', userId);
+  console.log(`Subscription ${subscription.status} for user ${userId}`);
+  // Implementation for recurring subscriptions if needed later
+}
 
-  console.log(`Payment failed for user ${userId}`);
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.user_id;
+  if (!userId) {
+    console.error('No user_id in subscription metadata');
+    return;
+  }
 
-  // TODO: Send email notification to user
+  console.log(`Subscription deleted for user ${userId}`);
+  // Implementation for recurring subscriptions if needed later
 }

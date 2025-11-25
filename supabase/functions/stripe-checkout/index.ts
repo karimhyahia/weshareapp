@@ -16,7 +16,7 @@ interface CheckoutRequest {
   userId: string;
   email: string;
   tierId: string;
-  billingCycle: 'monthly' | 'yearly';
+  mode: 'payment' | 'subscription'; // payment = one-time, subscription = recurring
 }
 
 serve(async (req) => {
@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, userId, email, tierId, billingCycle }: CheckoutRequest = await req.json();
+    const { priceId, userId, email, tierId, mode = 'payment' }: CheckoutRequest = await req.json();
 
     if (!priceId || !userId || !email) {
       throw new Error('Missing required parameters');
@@ -50,9 +50,9 @@ serve(async (req) => {
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customer.id,
-      mode: 'subscription',
+      mode: mode,
       payment_method_types: ['card'],
       line_items: [
         {
@@ -65,18 +65,21 @@ serve(async (req) => {
       metadata: {
         user_id: userId,
         tier_id: tierId,
-        billing_cycle: billingCycle,
       },
-      subscription_data: {
+      allow_promotion_codes: true,
+    };
+
+    // For one-time payments (Lifetime Deals), no trial needed
+    if (mode === 'payment') {
+      sessionConfig.payment_intent_data = {
         metadata: {
           user_id: userId,
           tier_id: tierId,
-          billing_cycle: billingCycle,
         },
-        trial_period_days: tierId === 'pro' ? 14 : 0, // 14-day trial for Pro
-      },
-      allow_promotion_codes: true,
-    });
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return new Response(
       JSON.stringify({ sessionId: session.id, url: session.url }),

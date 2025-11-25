@@ -132,10 +132,8 @@ export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing'
 export interface SubscriptionTier {
   id: SubscriptionTierId;
   name: string;
-  priceMonthly: number;
-  priceYearly: number;
-  stripePriceIdMonthly?: string;
-  stripePriceIdYearly?: string;
+  priceLifetime: number; // One-time payment for lifetime access
+  stripePriceId?: string; // Single Stripe price ID for one-time payment
   features: Record<string, boolean>;
   limits: {
     maxCards: number;
@@ -151,24 +149,20 @@ export interface Subscription {
   id: string;
   userId: string;
   tierId: SubscriptionTierId;
-  billingCycle: BillingCycle;
-  status: SubscriptionStatus;
+  status: SubscriptionStatus | 'lifetime';
   stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  currentPeriodStart?: string;
-  currentPeriodEnd?: string;
-  cancelAtPeriodEnd: boolean;
-  trialEnd?: string;
+  stripePaymentIntentId?: string;
+  purchasedAt?: string;
+  amountPaid: number;
 }
 
 export interface UserSubscription {
   subscriptionId: string;
   tierId: SubscriptionTierId;
   tierName: string;
-  status: SubscriptionStatus;
-  billingCycle: BillingCycle;
-  currentPeriodEnd?: string;
-  cancelAtPeriodEnd: boolean;
+  status: SubscriptionStatus | 'lifetime';
+  purchasedAt?: string;
+  amountPaid: number;
   features: Record<string, boolean>;
   limits: SubscriptionTier['limits'];
 }

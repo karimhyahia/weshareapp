@@ -1,19 +1,19 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from './supabase';
-import { UserSubscription, SubscriptionTier, BillingCycle, SubscriptionTierId } from './types';
+import { SubscriptionTier, SubscriptionTierId } from './types';
 
 // Initialize Stripe
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
-// Subscription Tiers Configuration
+// Lifetime Deal Tiers Configuration
 // NOTE: Update stripe_price_id values from your Stripe Dashboard after creating products
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     id: 'free',
     name: 'Free',
-    priceMonthly: 0,
-    priceYearly: 0,
+    priceLifetime: 0,
+    stripePriceId: undefined,
     features: {
       basicAnalytics: true,
       standardThemes: true,
@@ -28,11 +28,9 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   },
   {
     id: 'pro',
-    name: 'Pro',
-    priceMonthly: 9.99,
-    priceYearly: 99,
-    stripePriceIdMonthly: 'price_xxx', // Replace with actual Stripe price ID
-    stripePriceIdYearly: 'price_yyy', // Replace with actual Stripe price ID
+    name: 'Pro LTD',
+    priceLifetime: 89,
+    stripePriceId: 'price_xxx', // Replace with actual Stripe price ID
     features: {
       basicAnalytics: true,
       advancedAnalytics: true,
@@ -43,22 +41,21 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       leadCollection: true,
       prioritySupport: true,
       videoIntegration: true,
+      lifetimeAccess: true,
     },
     limits: {
       maxCards: 999,
       maxLinks: 999,
       analyticsDays: 999999,
       qrScansMonthly: 999999,
-      storageGb: 5,
+      storageGb: 10,
     },
   },
   {
     id: 'business',
-    name: 'Business',
-    priceMonthly: 29.99,
-    priceYearly: 299,
-    stripePriceIdMonthly: 'price_zzz', // Replace with actual Stripe price ID
-    stripePriceIdYearly: 'price_www', // Replace with actual Stripe price ID
+    name: 'Business LTD',
+    priceLifetime: 249,
+    stripePriceId: 'price_yyy', // Replace with actual Stripe price ID
     features: {
       basicAnalytics: true,
       advancedAnalytics: true,
@@ -75,14 +72,16 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       crmIntegrations: true,
       whiteLabel: true,
       dedicatedSupport: true,
+      lifetimeAccess: true,
+      unlimitedEverything: true,
     },
     limits: {
-      maxCards: 999,
-      maxLinks: 999,
+      maxCards: 999999,
+      maxLinks: 999999,
       analyticsDays: 999999,
       qrScansMonthly: 999999,
-      storageGb: 50,
-      teamMembers: 5,
+      storageGb: 999999,
+      teamMembers: 999,
     },
   },
 ];
@@ -97,7 +96,7 @@ export function getSubscriptionTier(tierId: SubscriptionTierId): SubscriptionTie
 /**
  * Get user's current subscription
  */
-export async function getUserSubscription(): Promise<UserSubscription | null> {
+export async function getUserSubscription() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -111,7 +110,7 @@ export async function getUserSubscription(): Promise<UserSubscription | null> {
       return null;
     }
 
-    return data as UserSubscription;
+    return data;
   } catch (error) {
     console.error('Error in getUserSubscription:', error);
     return null;
@@ -176,11 +175,10 @@ export async function checkUsageLimit(limitType: 'cards' | 'links'): Promise<{ i
 }
 
 /**
- * Create Stripe checkout session
+ * Create Stripe checkout session for one-time payment
  */
 export async function createCheckoutSession(
-  tierId: SubscriptionTierId,
-  billingCycle: BillingCycle
+  tierId: SubscriptionTierId
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!stripePromise) {
@@ -193,26 +191,18 @@ export async function createCheckoutSession(
     }
 
     const tier = getSubscriptionTier(tierId);
-    if (!tier) {
-      return { success: false, error: 'Invalid subscription tier' };
-    }
-
-    const priceId = billingCycle === 'monthly'
-      ? tier.stripePriceIdMonthly
-      : tier.stripePriceIdYearly;
-
-    if (!priceId) {
-      return { success: false, error: 'Price ID not configured. Please update subscriptionUtils.ts with your Stripe price IDs.' };
+    if (!tier || !tier.stripePriceId) {
+      return { success: false, error: 'Invalid tier or price ID not configured. Please update subscriptionUtils.ts with your Stripe price IDs.' };
     }
 
     // Call Supabase Edge Function to create checkout session
     const { data, error } = await supabase.functions.invoke('stripe-checkout', {
       body: {
-        priceId,
+        priceId: tier.stripePriceId,
         userId: user.id,
         email: user.email,
         tierId,
-        billingCycle,
+        mode: 'payment', // One-time payment
       },
     });
 
@@ -242,75 +232,11 @@ export async function createCheckoutSession(
 }
 
 /**
- * Open Stripe Customer Portal for subscription management
- */
-export async function openCustomerPortal(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    const subscription = await getUserSubscription();
-    if (!subscription) {
-      return { success: false, error: 'No subscription found' };
-    }
-
-    // Get subscription with Stripe customer ID
-    const { data: subData } = await supabase
-      .from('subscriptions')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!subData?.stripe_customer_id) {
-      return { success: false, error: 'No Stripe customer found' };
-    }
-
-    // Call Supabase Edge Function to create portal session
-    const { data, error } = await supabase.functions.invoke('stripe-portal', {
-      body: {
-        customerId: subData.stripe_customer_id,
-      },
-    });
-
-    if (error) {
-      console.error('Error creating portal session:', error);
-      return { success: false, error: error.message };
-    }
-
-    // Redirect to portal
-    if (data.url) {
-      window.location.href = data.url;
-      return { success: true };
-    }
-
-    return { success: false, error: 'No portal URL returned' };
-  } catch (error: any) {
-    console.error('Error in openCustomerPortal:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
  * Get price display string
  */
-export function getPriceDisplay(tier: SubscriptionTier, billingCycle: BillingCycle): string {
-  if (tier.id === 'free') return 'Free';
-
-  const price = billingCycle === 'monthly' ? tier.priceMonthly : tier.priceYearly;
-  const period = billingCycle === 'monthly' ? '/mo' : '/yr';
-
-  return `€${price}${period}`;
-}
-
-/**
- * Calculate savings for yearly billing
- */
-export function getYearlySavings(tier: SubscriptionTier): number {
-  const monthlyTotal = tier.priceMonthly * 12;
-  const yearlySavings = monthlyTotal - tier.priceYearly;
-  return Math.round(yearlySavings * 100) / 100;
+export function getPriceDisplay(tier: SubscriptionTier): string {
+  if (tier.id === 'free') return 'Kostenlos';
+  return `€${tier.priceLifetime} einmalig`;
 }
 
 /**
@@ -319,7 +245,7 @@ export function getYearlySavings(tier: SubscriptionTier): number {
 export function getStatusBadgeColor(status: string): string {
   switch (status) {
     case 'active':
-    case 'trialing':
+    case 'lifetime':
       return 'bg-green-100 text-green-800';
     case 'past_due':
       return 'bg-yellow-100 text-yellow-800';
@@ -329,4 +255,17 @@ export function getStatusBadgeColor(status: string): string {
     default:
       return 'bg-gray-100 text-gray-800';
   }
+}
+
+/**
+ * Calculate what users save vs monthly equivalent
+ */
+export function getLifetimeSavings(tier: SubscriptionTier): string {
+  if (tier.id === 'free') return '';
+
+  // Assuming monthly equivalent would be ~€10-30/month
+  const monthlyEquivalent = tier.id === 'pro' ? 9.99 : 29.99;
+  const monthsBreakEven = Math.ceil(tier.priceLifetime / monthlyEquivalent);
+
+  return `Zahlt sich nach ${monthsBreakEven} Monaten ab`;
 }

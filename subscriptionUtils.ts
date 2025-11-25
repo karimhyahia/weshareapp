@@ -110,6 +110,22 @@ export async function getUserSubscription() {
       return null;
     }
 
+    console.log('Raw subscription data from database:', data);
+
+    // Map snake_case to camelCase if needed
+    if (data && data.tier_id) {
+      return {
+        subscriptionId: data.subscription_id,
+        tierId: data.tier_id,
+        tierName: data.tier_name,
+        status: data.status,
+        purchasedAt: data.purchased_at,
+        amountPaid: data.amount_paid,
+        features: data.features,
+        limits: data.limits,
+      };
+    }
+
     return data;
   } catch (error) {
     console.error('Error in getUserSubscription:', error);

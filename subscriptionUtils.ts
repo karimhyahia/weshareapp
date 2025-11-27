@@ -15,15 +15,45 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 0,
     stripePriceId: undefined,
     features: {
-      basicAnalytics: true,
-      standardThemes: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
       qrCode: true,
+      standardThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Advanced Features (NOT included in Free)
+      customColors: false,
+      customFonts: false,
+      allThemes: false,
+      removeBranding: false,
+      advancedAnalytics: false,
+      contactForm: false,
+      leadCollection: false,
+      services: false,
+      projects: false,
+      videoIntegration: false,
+      voiceIntro: false,
+      customDomain: false,
+      prioritySupport: false,
+      apiAccess: false,
+      teamManagement: false,
+      whiteLabel: false,
+      dedicatedSupport: false,
+      bulkOperations: false,
+      exportData: false,
+      lifetimeAccess: false,
     },
     limits: {
       maxCards: 1,
       maxLinks: 3,
       analyticsDays: 7,
       qrScansMonthly: 100,
+      maxServices: 2,
+      maxProjects: 2,
+      contactForm: false,
+      storageGb: 0.1, // 100MB
     },
   },
   {
@@ -32,23 +62,47 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 89,
     stripePriceId: 'price_1SXJTN2EeXK7mLiF7sYKU680', // Pro Lifetime Deal
     features: {
-      basicAnalytics: true,
-      advancedAnalytics: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
+      qrCode: true,
       standardThemes: true,
-      allThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Pro Features
       customColors: true,
+      customFonts: true,
+      allThemes: true,
       removeBranding: true,
+      advancedAnalytics: true,
+      contactForm: true,
       leadCollection: true,
-      prioritySupport: true,
+      services: true,
+      projects: true,
       videoIntegration: true,
+      voiceIntro: true,
+      customDomain: true,
+      prioritySupport: true,
+      exportData: true,
       lifetimeAccess: true,
+
+      // Business Features (NOT included in Pro)
+      apiAccess: false,
+      teamManagement: false,
+      whiteLabel: false,
+      dedicatedSupport: false,
+      bulkOperations: false,
     },
     limits: {
-      maxCards: 999,
+      maxCards: 5,
       maxLinks: 999,
-      analyticsDays: 999999,
-      qrScansMonthly: 999999,
-      storageGb: 10,
+      analyticsDays: 999999, // Forever
+      qrScansMonthly: 999999, // Unlimited
+      maxServices: 10,
+      maxProjects: 10,
+      contactForm: true,
+      storageGb: 5,
     },
   },
   {
@@ -57,31 +111,49 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 249,
     stripePriceId: 'price_1SXJUo2EeXK7mLiFDCXcvhXw', // Business Lifetime Deal
     features: {
-      basicAnalytics: true,
-      advancedAnalytics: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
+      qrCode: true,
       standardThemes: true,
-      allThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Pro Features
       customColors: true,
+      customFonts: true,
+      allThemes: true,
       removeBranding: true,
+      advancedAnalytics: true,
+      contactForm: true,
       leadCollection: true,
-      prioritySupport: true,
+      services: true,
+      projects: true,
       videoIntegration: true,
-      teamManagement: true,
-      apiAccess: true,
+      voiceIntro: true,
       customDomain: true,
-      crmIntegrations: true,
+      prioritySupport: true,
+      exportData: true,
+      lifetimeAccess: true,
+
+      // Business Features
+      apiAccess: true,
+      teamManagement: true,
       whiteLabel: true,
       dedicatedSupport: true,
-      lifetimeAccess: true,
+      bulkOperations: true,
       unlimitedEverything: true,
     },
     limits: {
-      maxCards: 999999,
-      maxLinks: 999999,
-      analyticsDays: 999999,
-      qrScansMonthly: 999999,
-      storageGb: 999999,
-      teamMembers: 999,
+      maxCards: 999999, // Unlimited
+      maxLinks: 999999, // Unlimited
+      analyticsDays: 999999, // Forever
+      qrScansMonthly: 999999, // Unlimited
+      maxServices: 999, // Unlimited
+      maxProjects: 999, // Unlimited
+      contactForm: true,
+      storageGb: 50,
+      teamMembers: 5,
     },
   },
 ];
@@ -108,6 +180,22 @@ export async function getUserSubscription() {
     if (error) {
       console.error('Error fetching subscription:', error);
       return null;
+    }
+
+    console.log('Raw subscription data from database:', data);
+
+    // Map snake_case to camelCase if needed
+    if (data && data.tier_id) {
+      return {
+        subscriptionId: data.subscription_id,
+        tierId: data.tier_id,
+        tierName: data.tier_name,
+        status: data.status,
+        purchasedAt: data.purchased_at,
+        amountPaid: data.amount_paid,
+        features: data.features,
+        limits: data.limits,
+      };
     }
 
     return data;
@@ -268,4 +356,63 @@ export function getLifetimeSavings(tier: SubscriptionTier): string {
   const monthsBreakEven = Math.ceil(tier.priceLifetime / monthlyEquivalent);
 
   return `Zahlt sich nach ${monthsBreakEven} Monaten ab`;
+}
+
+/**
+ * Check if user can create a new card
+ */
+export async function canCreateCard(currentCardCount: number): Promise<{ allowed: boolean; limit: number; message?: string }> {
+  const subscription = await getUserSubscription();
+  if (!subscription) {
+    return { allowed: false, limit: 0, message: 'No subscription found' };
+  }
+
+  const tier = getSubscriptionTier(subscription.tierId);
+  if (!tier) {
+    return { allowed: false, limit: 0, message: 'Invalid subscription tier' };
+  }
+
+  const maxCards = tier.limits.maxCards || 1;
+  const allowed = currentCardCount < maxCards;
+
+  return {
+    allowed,
+    limit: maxCards,
+    message: allowed ? undefined : `You've reached your limit of ${maxCards} card${maxCards > 1 ? 's' : ''}. Upgrade to create more!`,
+  };
+}
+
+/**
+ * Get usage stats for current subscription
+ */
+export async function getUsageStats(currentCardCount: number) {
+  const subscription = await getUserSubscription();
+  if (!subscription) return null;
+
+  const tier = getSubscriptionTier(subscription.tierId);
+  if (!tier) return null;
+
+  return {
+    cards: {
+      used: currentCardCount,
+      limit: tier.limits.maxCards || 1,
+      percentage: tier.limits.maxCards ? Math.round((currentCardCount / tier.limits.maxCards) * 100) : 0,
+      unlimited: tier.limits.maxCards >= 999999,
+    },
+    links: {
+      limit: tier.limits.maxLinks || 5,
+      unlimited: tier.limits.maxLinks >= 999,
+    },
+    services: {
+      limit: tier.limits.maxServices || 0,
+      allowed: (tier.limits.maxServices || 0) > 0,
+    },
+    projects: {
+      limit: tier.limits.maxProjects || 0,
+      allowed: (tier.limits.maxProjects || 0) > 0,
+    },
+    contactForm: {
+      allowed: tier.limits.contactForm || false,
+    },
+  };
 }

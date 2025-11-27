@@ -140,8 +140,11 @@ export interface SubscriptionTier {
     maxLinks: number;
     analyticsDays: number;
     qrScansMonthly: number;
+    maxServices: number;
+    maxProjects: number;
     storageGb?: number;
     teamMembers?: number;
+    contactForm: boolean;
   };
 }
 
@@ -178,4 +181,11 @@ export interface PaymentHistory {
   status: 'succeeded' | 'failed' | 'pending' | 'refunded';
   description?: string;
   createdAt: string;
+}
+
+export interface SiteLimitInfo {
+  current_count: number;
+  max_allowed: number;
+  tier_id: SubscriptionTierId;
+  can_create: boolean;
 }

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  ArrowRight, Check, Star, Layout, Zap, Shield, Globe, ChevronRight, Play, 
-  Smartphone, BarChart3, Share2, Palette, Quote, Plus, Minus, X as XIcon 
+import {
+  ArrowRight, Check, Star, Layout, Zap, Shield, Globe, ChevronRight, Play,
+  Smartphone, BarChart3, Share2, Palette, Quote, Plus, Minus, X as XIcon,
+  Sparkles, Crown
 } from 'lucide-react';
 import { CardPreview } from './CardPreview';
 import { INITIAL_DATA } from '../constants';
@@ -367,81 +368,302 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-24 px-6 bg-slate-900 text-white" id="pricing">
+      {/* Pricing Section - Lifetime Deals */}
+      <section className="py-24 px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50" id="pricing">
           <div className="max-w-7xl mx-auto">
               <div className="text-center mb-12">
-                  <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('pricing.title')}</h2>
-                  <p className="text-xl text-slate-400 mb-8">{t('pricing.subtitle')}</p>
-                  
-                  {/* Billing Toggle */}
-                  <div className="flex items-center justify-center gap-4">
-                     <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-white' : 'text-slate-400'}`}>{t('pricing.monthly')}</span>
-                     <button 
-                        onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
-                        className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${billingCycle === 'yearly' ? 'bg-blue-600' : 'bg-slate-700'}`}
-                     >
-                         <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${billingCycle === 'yearly' ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                     </button>
-                     <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-white' : 'text-slate-400'}`}>
-                         {t('pricing.yearly')} <span className="text-green-400 text-xs bg-green-400/10 px-2 py-0.5 rounded-full ml-1 font-bold">{t('pricing.save20')}</span>
-                     </span>
-                 </div>
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full text-sm font-bold mb-6 shadow-lg">
+                      <Sparkles size={18} />
+                      Limited Time - Lifetime Access Deals
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">
+                      Pay Once, <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Use Forever</span>
+                  </h2>
+                  <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+                      No subscriptions, no recurring fees. Get lifetime access to all features with our exclusive one-time payment deals.
+                  </p>
               </div>
 
-              <div className="grid lg:grid-cols-3 gap-8 items-start">
-                  {/* Starter */}
-                  <div className="bg-white text-slate-900 p-8 rounded-3xl">
+              <div className="grid lg:grid-cols-3 gap-8">
+                  {/* Free Plan */}
+                  <div className="relative rounded-3xl p-8 bg-white border-2 border-slate-200 hover:border-slate-300 shadow-lg transition-all">
                       <div className="mb-6">
-                          <h3 className="text-lg font-bold">{t('pricing.starter')}</h3>
-                          <div className="text-4xl font-bold mt-4">€0</div>
-                          <p className="text-slate-500 mt-2 text-sm">{t('pricing.foreverFree')}</p>
+                          <h3 className="text-2xl font-bold text-slate-900 mb-2">Free</h3>
+                          <p className="text-sm text-slate-600">Perfect to get started</p>
                       </div>
-                      <ul className="space-y-4 text-sm mb-8">
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> 1 Digital Card</li>
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> Basic Analytics</li>
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> Standard Themes</li>
+
+                      <div className="mb-6">
+                          <div className="text-5xl font-bold text-slate-900">Free</div>
+                      </div>
+
+                      <button
+                          onClick={() => onNavigate('signup')}
+                          className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      >
+                          Get Started Free
+                      </button>
+
+                      <ul className="space-y-3">
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>1 Digital Card</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Up to 3 Social Links</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Basic Analytics (7 days)</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Standard Themes</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>QR Code Generation</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>100 QR Scans/Month</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Profile Customization</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>2 Services & 2 Projects</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Premium Themes</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Custom Colors & Fonts</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Remove Branding</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Contact Forms</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Video Integration</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Advanced Analytics</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-400">
+                              <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                              <span>Custom Domain</span>
+                          </li>
                       </ul>
-                      <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl border-2 border-slate-200 font-bold hover:border-slate-900 transition-colors">{t('nav.getStarted')}</button>
                   </div>
 
-                  {/* Pro */}
-                  <div className="bg-blue-600 text-white p-8 rounded-3xl relative transform lg:-translate-y-4 shadow-2xl">
-                      <div className="absolute top-0 right-0 bg-yellow-400 text-blue-900 text-xs font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-                      <div className="mb-6">
-                          <h3 className="text-lg font-bold">{t('pricing.pro')}</h3>
-                          <div className="text-4xl font-bold mt-4">
-                              €{billingCycle === 'yearly' ? '12' : '15'}
-                              <span className="text-lg opacity-70 font-normal text-sm">/mo</span>
-                          </div>
-                          <p className="opacity-80 mt-2 text-sm">{t('pricing.forPros')}</p>
+                  {/* Pro LTD - Highlighted */}
+                  <div className="relative rounded-3xl p-8 bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-2xl transform lg:-translate-y-4 scale-105 transition-all">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+                          BEST VALUE
                       </div>
-                      <ul className="space-y-4 text-sm mb-8">
-                          <li className="flex gap-3"><Check size={18} className="text-white" /> 5 Digital Cards</li>
-                          <li className="flex gap-3"><Check size={18} className="text-white" /> Advanced Analytics</li>
-                          <li className="flex gap-3"><Check size={18} className="text-white" /> Custom Domain</li>
-                          <li className="flex gap-3"><Check size={18} className="text-white" /> No Branding</li>
+
+                      <div className="mb-6">
+                          <h3 className="text-2xl font-bold mb-2">Pro LTD</h3>
+                          <p className="text-sm text-blue-100">Lifetime access to all pro features</p>
+                      </div>
+
+                      <div className="mb-6">
+                          <div className="text-5xl font-bold">€89</div>
+                          <p className="text-sm mt-2 text-blue-100">One-time payment • Lifetime access</p>
+                      </div>
+
+                      <button
+                          onClick={() => onNavigate('signup')}
+                          className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
+                      >
+                          Get Pro - €89 Once
+                      </button>
+
+                      <ul className="space-y-3">
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>5 Digital Cards</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Unlimited Social Links</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Advanced Analytics (Forever)</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>All Premium Themes</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Custom Colors & Fonts</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Remove WeShare Branding</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Contact Forms & Lead Collection</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Services (10) & Projects (10)</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Video & Voice Integration</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Custom Domain Support</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Unlimited QR Scans</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Priority Support</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>Export Data</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span>5GB Storage</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm font-bold">
+                              <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                              <span className="flex items-center gap-1">
+                                  Lifetime Updates
+                                  <Sparkles size={14} className="inline" />
+                              </span>
+                          </li>
                       </ul>
-                      <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-colors">{t('pricing.startTrial')}</button>
                   </div>
 
-                  {/* Business */}
-                  <div className="bg-white text-slate-900 p-8 rounded-3xl">
-                      <div className="mb-6">
-                          <h3 className="text-lg font-bold">{t('pricing.business')}</h3>
-                          <div className="text-4xl font-bold mt-4">
-                              €{billingCycle === 'yearly' ? '5' : '7'}
-                              <span className="text-lg text-slate-500 font-normal text-sm">{t('pricing.userMo')}</span>
-                          </div>
-                          <p className="text-slate-500 mt-2 text-sm">{t('pricing.forTeams')}</p>
+                  {/* Business LTD */}
+                  <div className="relative rounded-3xl p-8 bg-white border-2 border-slate-200 hover:border-slate-300 shadow-lg transition-all">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+                          UNLIMITED
                       </div>
-                      <ul className="space-y-4 text-sm mb-8">
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> 25+ Digital Cards</li>
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> Team Dashboard</li>
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> Central Billing</li>
-                          <li className="flex gap-3"><Check size={18} className="text-green-500" /> Priority Support</li>
+
+                      <div className="mb-6">
+                          <h3 className="text-2xl font-bold text-slate-900 mb-2">Business LTD</h3>
+                          <p className="text-sm text-slate-600">For teams and power users</p>
+                      </div>
+
+                      <div className="mb-6">
+                          <div className="text-5xl font-bold text-slate-900">€249</div>
+                          <p className="text-sm mt-2 text-slate-600">One-time payment • Lifetime access</p>
+                      </div>
+
+                      <button
+                          onClick={() => onNavigate('signup')}
+                          className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                      >
+                          Get Business - €249 Once
+                      </button>
+
+                      <ul className="space-y-3">
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Everything in Pro</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span className="flex items-center gap-1">
+                                  Unlimited Sites ✨
+                                  <Sparkles size={14} className="inline" />
+                              </span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Unlimited Services & Projects</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Team Management (5 members)</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>API Access</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>White Label Options</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Bulk Operations & Management</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>Dedicated Support</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span>50GB Storage</span>
+                          </li>
+                          <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                              <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                              <span className="flex items-center gap-1">
+                                  Lifetime Updates
+                                  <Sparkles size={14} className="inline" />
+                              </span>
+                          </li>
                       </ul>
-                      <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl border-2 border-slate-200 font-bold hover:border-slate-900 transition-colors">{t('pricing.contactSales')}</button>
+                  </div>
+              </div>
+
+              {/* Why Lifetime Section */}
+              <div className="mt-16 bg-white rounded-3xl p-8 md:p-12 shadow-xl border-2 border-slate-200">
+                  <h3 className="text-2xl font-bold text-slate-900 text-center mb-8">
+                      Why Choose Lifetime Access?
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-8">
+                      <div className="text-center">
+                          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                              <Zap size={32} className="text-blue-600" />
+                          </div>
+                          <h4 className="font-bold text-lg text-slate-900 mb-2">Pay Once, Own Forever</h4>
+                          <p className="text-slate-600 text-sm">
+                              No monthly fees, no surprises. One payment gives you lifetime access.
+                          </p>
+                      </div>
+                      <div className="text-center">
+                          <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                              <Crown size={32} className="text-purple-600" />
+                          </div>
+                          <h4 className="font-bold text-lg text-slate-900 mb-2">All Future Updates</h4>
+                          <p className="text-slate-600 text-sm">
+                              Get access to all future features at no additional cost.
+                          </p>
+                      </div>
+                      <div className="text-center">
+                          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                              <Sparkles size={32} className="text-green-600" />
+                          </div>
+                          <h4 className="font-bold text-lg text-slate-900 mb-2">Risk-Free</h4>
+                          <p className="text-slate-600 text-sm">
+                              14-day money-back guarantee if you're not satisfied.
+                          </p>
+                      </div>
                   </div>
               </div>
           </div>

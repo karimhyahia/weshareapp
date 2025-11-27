@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout as LayoutIcon, Share2, Smartphone, Monitor, ArrowLeft, Check, LogOut } from 'lucide-react';
-import { CardData, Tab, ViewMode } from './types';
+import { CardData, Tab, ViewMode, SiteLimitInfo } from './types';
 import { INITIAL_DATA } from './constants';
 import { Button } from './components/ui/Button';
 import { EditorPanel } from './components/EditorPanel';
@@ -19,12 +19,15 @@ import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
 
 const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     const navigate = useNavigate();
+    const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+
     // State
     const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
     const [sites, setSites] = useState<CardData[]>([]);
     const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<{ name: string, email: string, avatar: string } | null>(null);
+    const [checkoutMessage, setCheckoutMessage] = useState<{type: 'success' | 'cancelled', show: boolean}>({ type: 'success', show: false });
 
     // Delete Modal State
     const [siteToDelete, setSiteToDelete] = useState<string | null>(null);
@@ -43,6 +46,23 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     useEffect(() => {
         fetchSites();
     }, []);
+
+    // Handle checkout success/cancel
+    useEffect(() => {
+        const checkoutStatus = searchParams.get('checkout');
+        if (checkoutStatus === 'success') {
+            setCheckoutMessage({ type: 'success', show: true });
+            // Refresh subscription data after successful payment
+            setTimeout(() => {
+                window.location.href = '/app'; // Reload to fetch updated subscription
+            }, 3000);
+        } else if (checkoutStatus === 'cancelled') {
+            setCheckoutMessage({ type: 'cancelled', show: true });
+            setTimeout(() => {
+                setCheckoutMessage(prev => ({ ...prev, show: false }));
+            }, 5000);
+        }
+    }, [searchParams]);
 
     const fetchSites = async () => {
         try {
@@ -113,14 +133,31 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     };
 
     const handleCreateSite = async () => {
-        if (sites.length >= 1) {
-            alert("You can only have one site.");
-            return;
-        }
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('You must be logged in to create a site');
+                return;
+            }
+
+            // Check tier limits using RPC function from database
+            const { data: limitInfo, error: limitError } = await supabase
+                .rpc('get_site_limit_info', { user_uuid: user.id })
+                .single();
+
+            if (limitError) {
+                console.error('Error checking site limits:', limitError);
+                alert('Unable to verify site limits. Please try again.');
+                return;
+            }
+
+            const typedLimitInfo = limitInfo as SiteLimitInfo;
+
+            if (!typedLimitInfo.can_create) {
+                // Show upgrade prompt if at limit
+                const tierName = typedLimitInfo.tier_id === 'free' ? 'Free' : typedLimitInfo.tier_id === 'pro' ? 'Pro' : 'Business';
+                alert(`You've reached your limit of ${typedLimitInfo.max_allowed} site(s) on the ${tierName} plan.\n\nUpgrade to create more sites!`);
+                navigate('/upgrade');
                 return;
             }
 
@@ -247,6 +284,26 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
+                // Check tier limits before duplicating
+                const { data: limitInfo, error: limitError } = await supabase
+                    .rpc('get_site_limit_info', { user_uuid: user.id })
+                    .single();
+
+                if (limitError) {
+                    console.error('Error checking site limits:', limitError);
+                    alert('Unable to verify site limits. Please try again.');
+                    return;
+                }
+
+                const typedLimitInfo = limitInfo as SiteLimitInfo;
+
+                if (!typedLimitInfo.can_create) {
+                    const tierName = typedLimitInfo.tier_id === 'free' ? 'Free' : typedLimitInfo.tier_id === 'pro' ? 'Pro' : 'Business';
+                    alert(`You've reached your limit of ${typedLimitInfo.max_allowed} site(s) on the ${tierName} plan.\n\nUpgrade to duplicate more sites!`);
+                    navigate('/upgrade');
+                    return;
+                }
+
                 const newSiteData = {
                     ...site,
                     id: 'temp-id',
@@ -305,6 +362,35 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     if (viewMode === 'dashboard') {
         return (
             <div className="min-h-screen font-sans text-slate-900 relative">
+                {/* Checkout Success/Cancel Message */}
+                {checkoutMessage.show && (
+                    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 ${
+                        checkoutMessage.type === 'success'
+                            ? 'bg-green-50 border-green-500 text-green-800'
+                            : 'bg-yellow-50 border-yellow-500 text-yellow-800'
+                    } border-2 rounded-xl p-4 shadow-lg`}>
+                        <div className="flex items-center gap-3">
+                            {checkoutMessage.type === 'success' ? (
+                                <>
+                                    <Check className="shrink-0" size={24} />
+                                    <div>
+                                        <div className="font-bold">Payment Successful! 🎉</div>
+                                        <div className="text-sm">Your lifetime access has been activated. Refreshing...</div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="shrink-0 w-6 h-6 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">!</div>
+                                    <div>
+                                        <div className="font-bold">Payment Cancelled</div>
+                                        <div className="text-sm">No worries! You can upgrade anytime.</div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <Dashboard
                     sites={sites}
                     onEdit={handleEditSite}

@@ -22,7 +22,7 @@ serve(async (req) => {
 
   try {
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 
     console.log(`Webhook received: ${event.type}`);
 
@@ -99,9 +99,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         tier_id: tierId,
         status: 'lifetime',
         stripe_customer_id: customerId,
-        stripe_payment_intent_id: paymentIntentId,
         purchased_at: new Date().toISOString(),
         amount_paid: amountTotal,
+        billing_cycle: null, // Not needed for lifetime deals
       }, {
         onConflict: 'user_id'
       });

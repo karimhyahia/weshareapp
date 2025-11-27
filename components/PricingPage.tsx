@@ -1,17 +1,18 @@
-
-import React, { useState } from 'react';
-import { Layout, Check, X as XIcon, HelpCircle } from 'lucide-react';
+import React from 'react';
+import { Layout, Check, X as XIcon, Sparkles, Crown, Zap } from 'lucide-react';
 import { PageState } from '../Main';
+import { useLanguage } from '../LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface PricingPageProps {
   onNavigate: (page: PageState) => void;
 }
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 font-sans text-slate-900">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -21,178 +22,365 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
             </div>
             <span className="font-bold text-xl tracking-tight">WeShare</span>
           </div>
-          
+
           <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => onNavigate('features')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Features</button>
-            <button onClick={() => onNavigate('how-it-works')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">How it Works</button>
-            <button onClick={() => onNavigate('pricing')} className="text-sm font-bold text-slate-900">Pricing</button>
+            <button onClick={() => onNavigate('features')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('nav.features')}</button>
+            <button onClick={() => onNavigate('how-it-works')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('nav.howItWorks')}</button>
+            <button onClick={() => onNavigate('pricing')} className="text-sm font-bold text-slate-900">{t('nav.pricing')}</button>
           </div>
 
           <div className="flex items-center gap-4">
-            <button onClick={() => onNavigate('login')} className="text-sm font-medium text-slate-600 hover:text-slate-900 hidden sm:block">Log in</button>
-            <button onClick={() => onNavigate('signup')} className="px-5 py-2.5 bg-slate-900 text-white rounded-full text-sm font-bold hover:bg-slate-800 transition-all">Get Started</button>
+            <LanguageSwitcher />
+            <button onClick={() => onNavigate('login')} className="text-sm font-medium text-slate-600 hover:text-slate-900 hidden sm:block">{t('nav.login')}</button>
+            <button onClick={() => onNavigate('signup')} className="px-5 py-2.5 bg-slate-900 text-white rounded-full text-sm font-bold hover:bg-slate-800 transition-all">{t('nav.getStarted')}</button>
           </div>
         </div>
       </nav>
 
       {/* Header */}
       <section className="pt-32 pb-16 text-center px-6">
-         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
-             Simple, transparent pricing.
-         </h1>
-         <p className="text-xl text-slate-600 mb-10">
-             Choose the plan that's right for you.
-         </p>
-         
-         {/* Toggle */}
-         <div className="flex items-center justify-center gap-4 mb-12">
-             <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}>Monthly</span>
-             <button 
-                onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
-                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${billingCycle === 'yearly' ? 'bg-slate-900' : 'bg-slate-300'}`}
-             >
-                 <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${billingCycle === 'yearly' ? 'translate-x-6' : 'translate-x-0'}`}></div>
-             </button>
-             <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
-                 Yearly <span className="text-green-600 text-xs bg-green-50 px-2 py-0.5 rounded-full ml-1 font-bold">SAVE 20%</span>
-             </span>
-         </div>
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full text-sm font-bold mb-6 shadow-lg">
+          <Sparkles size={18} />
+          {t('pricing.limitedOffer')}
+        </div>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 mb-6">
+          {t('pricing.payOnce')} <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t('pricing.useForever')}</span>
+        </h1>
+        <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+          {t('pricing.noSubscriptions')}
+        </p>
       </section>
 
       {/* Pricing Cards */}
-      <section className="max-w-7xl mx-auto px-6 pb-24">
-         <div className="grid lg:grid-cols-3 gap-8 items-start">
-             {/* Free Plan */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="mb-6">
-                    <h3 className="text-lg font-bold text-slate-900">Starter</h3>
-                    <div className="text-4xl font-bold text-slate-900 mt-4">€0</div>
-                    <p className="text-slate-500 mt-2 text-sm">Forever free.</p>
-                </div>
-                <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-all mb-8">
-                    Get Started
-                </button>
-                <ul className="space-y-4 text-sm">
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> 1 Digital Card</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> Basic Analytics (7 days)</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> Standard Themes</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> QR Code Sharing</li>
-                    <li className="flex items-start gap-3 text-slate-400"><XIcon size={18} className="shrink-0" /> Custom Domain</li>
-                    <li className="flex items-start gap-3 text-slate-400"><XIcon size={18} className="shrink-0" /> Lead Collection</li>
-                </ul>
+      <section className="max-w-7xl mx-auto px-6 pb-16">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Free Plan */}
+          <div className="relative rounded-3xl p-8 bg-white border-2 border-slate-200 hover:border-slate-300 shadow-lg transition-all">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('pricing.free')}</h3>
+              <p className="text-sm text-slate-600">{t('pricing.freeDesc')}</p>
             </div>
 
-            {/* Pro Plan */}
-            <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 relative transform md:-translate-y-4">
-                <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-                <div className="mb-6">
-                    <h3 className="text-lg font-bold text-white">Pro</h3>
-                    <div className="text-4xl font-bold text-white mt-4">
-                        €{billingCycle === 'yearly' ? '12' : '15'}
-                        <span className="text-lg text-slate-400 font-normal">/mo</span>
-                    </div>
-                    <p className="text-slate-400 mt-2 text-sm">Billed {billingCycle}.</p>
-                </div>
-                <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-blue-50 transition-all mb-8">
-                    Start Pro Trial
-                </button>
-                <ul className="space-y-4 text-sm text-slate-300">
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> 5 Digital Cards</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> Advanced Analytics (Unlimited)</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> Custom Domains</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> Lead Collection Forms</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> Remove WeShare Branding</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-blue-400 shrink-0" /> Priority Support</li>
-                </ul>
+            <div className="mb-6">
+              <div className="text-5xl font-bold text-slate-900">{t('pricing.freePrice')}</div>
             </div>
 
-            {/* Business Plan */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="mb-6">
-                    <h3 className="text-lg font-bold text-slate-900">Business</h3>
-                    <div className="text-4xl font-bold text-slate-900 mt-4">
-                        €{billingCycle === 'yearly' ? '5' : '7'}
-                        <span className="text-lg text-slate-400 font-normal">/user/mo</span>
-                    </div>
-                    <p className="text-slate-500 mt-2 text-sm">For growing teams.</p>
-                </div>
-                <button onClick={() => onNavigate('signup')} className="w-full py-3 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-all mb-8">
-                    Get Started
-                </button>
-                <ul className="space-y-4 text-sm">
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> 25 Digital Cards</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> Team Management</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> Centralized Billing</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> All Pro Features</li>
-                    <li className="flex items-start gap-3"><Check size={18} className="text-green-500 shrink-0" /> Bulk Creation Tools</li>
-                </ul>
+            <button
+              onClick={() => onNavigate('signup')}
+              className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              {t('pricing.getStartedFree')}
+            </button>
+
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.oneCard')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.threeLinks')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.basicAnalytics')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.standardThemes')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.qrCode')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.qrScans')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.profileCustomization')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.twoServicesProjects')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.premiumThemes')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.customColorsFonts')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.removeBranding')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.contactForms')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.videoIntegration')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.advancedAnalytics')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-400">
+                <XIcon size={18} className="shrink-0 mt-0.5 opacity-40" />
+                <span>{t('pricing.features.customDomain')}</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Pro LTD - Highlighted */}
+          <div className="relative rounded-3xl p-8 bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-2xl transform lg:-translate-y-4 scale-105 transition-all">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+              {t('pricing.bestValue')}
             </div>
-         </div>
+
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold mb-2">{t('pricing.pro')}</h3>
+              <p className="text-sm text-blue-100">{t('pricing.proDesc')}</p>
+            </div>
+
+            <div className="mb-6">
+              <div className="text-5xl font-bold">€89</div>
+              <p className="text-sm mt-2 text-blue-100">{t('pricing.oneTimePayment')}</p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('signup')}
+              className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
+            >
+              {t('pricing.getProButton')}
+            </button>
+
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.fiveCards')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.unlimitedLinks')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.advancedAnalyticsForever')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.allThemes')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.customColorsFonts')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.removeBranding')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.contactFormsLead')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.servicesProjectsLimited')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.videoVoiceIntegration')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.customDomainSupport')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.unlimitedQrScans')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.prioritySupport')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.exportData')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span>{t('pricing.features.storage5gb')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm font-bold">
+                <Check size={18} className="shrink-0 mt-0.5 text-blue-200" />
+                <span className="flex items-center gap-1">
+                  {t('pricing.features.lifetimeUpdates')}
+                  <Sparkles size={14} className="inline" />
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Business LTD */}
+          <div className="relative rounded-3xl p-8 bg-white border-2 border-slate-200 hover:border-slate-300 shadow-lg transition-all">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+              {t('pricing.unlimited')}
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('pricing.business')}</h3>
+              <p className="text-sm text-slate-600">{t('pricing.businessDesc')}</p>
+            </div>
+
+            <div className="mb-6">
+              <div className="text-5xl font-bold text-slate-900">€249</div>
+              <p className="text-sm mt-2 text-slate-600">{t('pricing.oneTimePayment')}</p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('signup')}
+              className="w-full py-4 px-6 rounded-xl font-bold text-base transition-all mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg"
+            >
+              {t('pricing.getBusinessButton')}
+            </button>
+
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.everythingPro')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span className="flex items-center gap-1">
+                  {t('pricing.features.unlimitedSites')}
+                  <Sparkles size={14} className="inline" />
+                </span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.unlimitedServicesProjects')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.teamManagement')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.apiAccess')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.whiteLabel')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.bulkOperations')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.dedicatedSupport')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span>{t('pricing.features.storage50gb')}</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                <Check size={18} className="shrink-0 mt-0.5 text-green-500" />
+                <span className="flex items-center gap-1">
+                  {t('pricing.features.lifetimeUpdates')}
+                  <Sparkles size={14} className="inline" />
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-16 bg-slate-50 px-6">
-          <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Detailed Feature Comparison</h2>
-              <div className="overflow-x-auto">
-                  <table className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 text-sm text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                          <tr>
-                              <th className="p-4 text-slate-500 font-medium w-1/3">Features</th>
-                              <th className="p-4 text-slate-900 font-bold w-1/5 text-center">Starter</th>
-                              <th className="p-4 text-blue-600 font-bold w-1/5 text-center">Pro</th>
-                              <th className="p-4 text-slate-900 font-bold w-1/5 text-center">Business</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                          {[
-                              { name: "Number of Cards", free: "1", pro: "5", biz: "25" },
-                              { name: "Unlimited Updates", free: true, pro: true, biz: true },
-                              { name: "Analytics History", free: "7 Days", pro: "Unlimited", biz: "Unlimited" },
-                              { name: "Custom QR Codes", free: true, pro: true, biz: true },
-                              { name: "Custom Domain", free: false, pro: true, biz: true },
-                              { name: "Remove Branding", free: false, pro: true, biz: true },
-                              { name: "Lead Collection", free: false, pro: true, biz: true },
-                              { name: "Google Reviews", free: false, pro: true, biz: true },
-                              { name: "Team Admin Panel", free: false, pro: false, biz: true },
-                          ].map((row, i) => (
-                              <tr key={i}>
-                                  <td className="p-4 font-medium text-slate-700">{row.name}</td>
-                                  <td className="p-4 text-center">
-                                      {typeof row.free === 'boolean' ? (row.free ? <Check size={16} className="mx-auto text-green-500" /> : <XIcon size={16} className="mx-auto text-slate-300" />) : row.free}
-                                  </td>
-                                  <td className="p-4 text-center bg-blue-50/30">
-                                      {typeof row.pro === 'boolean' ? (row.pro ? <Check size={16} className="mx-auto text-blue-500" /> : <XIcon size={16} className="mx-auto text-slate-300" />) : row.pro}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                      {typeof row.biz === 'boolean' ? (row.biz ? <Check size={16} className="mx-auto text-green-500" /> : <XIcon size={16} className="mx-auto text-slate-300" />) : row.biz}
-                                  </td>
-                              </tr>
-                          ))}
-                      </tbody>
-                  </table>
+      {/* Why Lifetime Section */}
+      <section className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border-2 border-slate-200">
+          <h2 className="text-3xl font-bold text-slate-900 text-center mb-8">
+            {t('pricing.whyLifetime')}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Zap size={32} className="text-blue-600" />
               </div>
+              <h3 className="font-bold text-lg text-slate-900 mb-2">{t('pricing.payOnceTitle')}</h3>
+              <p className="text-slate-600 text-sm">
+                {t('pricing.payOnceDesc')}
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Crown size={32} className="text-purple-600" />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 mb-2">{t('pricing.futureUpdatesTitle')}</h3>
+              <p className="text-slate-600 text-sm">
+                {t('pricing.futureUpdatesDesc')}
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={32} className="text-green-600" />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 mb-2">{t('pricing.riskFreeTitle')}</h3>
+              <p className="text-slate-600 text-sm">
+                {t('pricing.riskFreeDesc')}
+              </p>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="max-w-3xl mx-auto px-6 pb-24">
+        <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
+          {t('pricing.faqTitle')}
+        </h2>
+        <div className="space-y-4">
+          {[
+            { q: t('pricing.faq.q1'), a: t('pricing.faq.a1') },
+            { q: t('pricing.faq.q2'), a: t('pricing.faq.a2') },
+            { q: t('pricing.faq.q3'), a: t('pricing.faq.a3') },
+            { q: t('pricing.faq.q4'), a: t('pricing.faq.a4') },
+          ].map((faq, index) => (
+            <details key={index} className="bg-white rounded-xl p-6 border-2 border-slate-200">
+              <summary className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors">
+                {faq.q}
+              </summary>
+              <p className="text-slate-600 mt-3">
+                {faq.a}
+              </p>
+            </details>
+          ))}
+        </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-white py-12 px-6 border-t border-slate-100">
-         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center text-white">
-                <Layout size={14} />
-              </div>
-              <span className="font-bold text-lg tracking-tight">WeShare</span>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center text-white">
+              <Layout size={14} />
             </div>
-            <div className="text-slate-500 text-sm">
-               © {new Date().getFullYear()} WeShare.Site. All rights reserved.
-            </div>
-            <div className="flex gap-6 text-sm font-medium text-slate-600">
-               <a href="#" className="hover:text-slate-900">Privacy</a>
-               <a href="#" className="hover:text-slate-900">Terms</a>
-               <a href="#" className="hover:text-slate-900">Contact</a>
-            </div>
-         </div>
+            <span className="font-bold text-lg tracking-tight">WeShare</span>
+          </div>
+          <div className="text-slate-500 text-sm">
+            © {new Date().getFullYear()} WeShare.Site. All rights reserved.
+          </div>
+          <div className="flex gap-6 text-sm font-medium text-slate-600">
+            <a href="#" className="hover:text-slate-900">Privacy</a>
+            <a href="#" className="hover:text-slate-900">Terms</a>
+            <a href="#" className="hover:text-slate-900">Contact</a>
+          </div>
+        </div>
       </footer>
     </div>
   );

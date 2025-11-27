@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { supabase, uploadImage } from '../supabase';
+import { getUserSubscription, getSubscriptionTier } from '../subscriptionUtils';
 
 import { ImageCropper } from './ui/ImageCropper';
 
@@ -39,6 +40,29 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<number | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Subscription limits state
+  const [maxServices, setMaxServices] = useState(0);
+  const [maxProjects, setMaxProjects] = useState(0);
+  const [maxLinks, setMaxLinks] = useState(0);
+  const [tierId, setTierId] = useState<'free' | 'pro' | 'business'>('free');
+
+  // Load subscription limits on mount
+  useEffect(() => {
+    const loadLimits = async () => {
+      const subscription = await getUserSubscription();
+      if (subscription) {
+        const tier = getSubscriptionTier(subscription.tierId);
+        if (tier) {
+          setMaxServices(tier.limits.maxServices);
+          setMaxProjects(tier.limits.maxProjects);
+          setMaxLinks(tier.limits.maxLinks);
+          setTierId(subscription.tierId);
+        }
+      }
+    };
+    loadLimits();
+  }, []);
 
   // ... (All Handlers remain exactly the same) ...
   const handleDragStart = (e: React.DragEvent, type: 'service' | 'project' | 'link', index: number) => {
@@ -156,6 +180,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
   };
 
   const addLink = () => {
+    const currentCount = data.links.length;
+    // Check if user has reached their limit
+    if (currentCount >= maxLinks) {
+      alert(`You've reached your limit of ${maxLinks} link${maxLinks !== 1 ? 's' : ''}. ${tierId === 'free' ? 'Upgrade to Pro for unlimited social links!' : 'You have unlimited links!'}`);
+      return;
+    }
     const newLink: SocialLink = { id: Date.now().toString(), platform: 'New Link', url: 'https://', icon: 'website' };
     onChange({ ...data, links: [...data.links, newLink] });
   };
@@ -169,6 +199,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
   };
 
   const addService = () => {
+    const currentCount = (data.services || []).length;
+    // Check if user has reached their limit
+    if (currentCount >= maxServices) {
+      alert(`You've reached your limit of ${maxServices} service${maxServices !== 1 ? 's' : ''}. ${tierId === 'free' ? 'Upgrade to Pro to add up to 10 services!' : 'Upgrade to Business for unlimited services!'}`);
+      return;
+    }
     const newService: Service = { id: Date.now().toString(), title: '', description: '' };
     onChange({ ...data, services: [...(data.services || []), newService] });
   };
@@ -182,6 +218,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
   };
 
   const addProject = () => {
+    const currentCount = (data.projects || []).length;
+    // Check if user has reached their limit
+    if (currentCount >= maxProjects) {
+      alert(`You've reached your limit of ${maxProjects} project${maxProjects !== 1 ? 's' : ''}. ${tierId === 'free' ? 'Upgrade to Pro to add up to 10 projects!' : 'Upgrade to Business for unlimited projects!'}`);
+      return;
+    }
     const newProject: Project = { id: Date.now().toString(), title: '', description: '', imageUrl: '' };
     onChange({ ...data, projects: [...(data.projects || []), newProject] });
   };
@@ -454,38 +496,63 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
             </div>
 
             {/* Contact Form Settings */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4 mt-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Mail size={16} className="text-slate-500" />
-                  <h3 className="text-sm font-medium text-slate-900">{t('editor.contactForm')}</h3>
+            <div className="relative mt-2">
+              <div className={`bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4 ${tierId === 'free' ? 'opacity-50' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail size={16} className="text-slate-500" />
+                    <h3 className="text-sm font-medium text-slate-900">{t('editor.contactForm')}</h3>
+                  </div>
+                  {tierId === 'free' ? (
+                    <button
+                      onClick={() => window.location.href = '/upgrade'}
+                      className="text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-3 py-1.5 rounded-md transition-all flex items-center gap-1"
+                    >
+                      <Sparkles size={12} />
+                      Upgrade to Pro
+                    </button>
+                  ) : (
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={data.contactForm?.enabled ?? false}
+                        onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, enabled: e.target.checked } })}
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-slate-900"></div>
+                    </label>
+                  )}
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={data.contactForm?.enabled ?? false}
-                    onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, enabled: e.target.checked } })}
-                  />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-slate-900"></div>
-                </label>
+                {tierId !== 'free' && data.contactForm?.enabled && (
+                  <div className="space-y-3 animate-fade-in">
+                    <Input label={t('editor.formTitle')} value={data.contactForm.title} onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, title: e.target.value } })} className="bg-white" />
+                    <Input label={t('editor.destEmail')} value={data.contactForm.email} onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, email: e.target.value } })} className="bg-white" />
+                  </div>
+                )}
               </div>
-              {data.contactForm?.enabled && (
-                <div className="space-y-3 animate-fade-in">
-                  <Input label={t('editor.formTitle')} value={data.contactForm.title} onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, title: e.target.value } })} className="bg-white" />
-                  <Input label={t('editor.destEmail')} value={data.contactForm.email} onChange={(e) => onChange({ ...data, contactForm: { ...data.contactForm, email: e.target.value } })} className="bg-white" />
-                </div>
-              )}
             </div>
 
             <div className="pt-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('editor.voiceIntro')}</label>
-              <div className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-700">{t('editor.voiceIntro')}</label>
+                {tierId === 'free' && (
+                  <button
+                    onClick={() => window.location.href = '/upgrade'}
+                    className="text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-3 py-1.5 rounded-md transition-all flex items-center gap-1"
+                  >
+                    <Sparkles size={12} />
+                    Upgrade to Pro
+                  </button>
+                )}
+              </div>
+              <div className={`flex items-center gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50 transition-colors ${tierId === 'free' ? 'opacity-50' : ''}`}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${data.profile.voiceIntroUrl ? 'bg-purple-100 text-purple-600' : (isRecording ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-200 text-slate-500')}`}>
                   {isRecording ? <Mic size={20} /> : (data.profile.voiceIntroUrl ? <Play size={20} /> : <Mic size={20} />)}
                 </div>
                 <div className="flex-1">
-                  {data.profile.voiceIntroUrl ? (
+                  {tierId === 'free' ? (
+                    <span className="text-xs text-slate-600">Voice introductions available in Pro</span>
+                  ) : data.profile.voiceIntroUrl ? (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-700 font-medium">Voice intro added</span>
                       <button onClick={() => updateProfile('voiceIntroUrl', '')} className="text-xs text-red-500 hover:underline">{t('editor.remove')}</button>
@@ -510,10 +577,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
 
             {/* Video */}
             <div className="pt-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('editor.video')}</label>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-700">{t('editor.video')}</label>
+                {tierId === 'free' && (
+                  <button
+                    onClick={() => window.location.href = '/upgrade'}
+                    className="text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-3 py-1.5 rounded-md transition-all flex items-center gap-1"
+                  >
+                    <Sparkles size={12} />
+                    Upgrade to Pro
+                  </button>
+                )}
+              </div>
+              <div className={`bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 ${tierId === 'free' ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-2 mb-2"><Video size={16} className="text-slate-500" /><h3 className="text-sm font-medium text-slate-900">YouTube / Vimeo</h3></div>
-                <Input placeholder="https://youtube.com/..." value={data.video?.url || ''} onChange={(e) => onChange({ ...data, video: { ...data.video, url: e.target.value, enabled: !!e.target.value } })} className="bg-white" />
+                {tierId === 'free' ? (
+                  <div className="py-3 text-center text-xs text-slate-600">Featured videos available in Pro tier</div>
+                ) : (
+                  <Input placeholder="https://youtube.com/..." value={data.video?.url || ''} onChange={(e) => onChange({ ...data, video: { ...data.video, url: e.target.value, enabled: !!e.target.value } })} className="bg-white" />
+                )}
               </div>
             </div>
 
@@ -542,36 +624,58 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
 
             {/* Google Business */}
             <div className="border-t border-slate-100 pt-6">
-              <div className="flex items-center gap-2 mb-4"><MapPin size={16} className="text-red-500" /><h3 className="text-sm font-medium text-slate-900">{t('editor.businessProfile')}</h3></div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                <div className="flex gap-2">
-                  <Input label="Business Name (Search)" value={data.business.query} onChange={(e) => onChange({ ...data, business: { ...data.business, query: e.target.value } })} className="bg-white" placeholder="e.g. Acme Corp" />
-                  <div className="mt-auto"><Button onClick={fetchBusinessReviews} disabled={isFetchingReviews || !data.business.query} className="shrink-0 w-24 h-[42px]">{isFetchingReviews ? <Loader2 className="animate-spin" size={16} /> : t('editor.find')}</Button></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-red-500" />
+                  <h3 className="text-sm font-medium text-slate-900">{t('editor.businessProfile')}</h3>
                 </div>
-                <Input label="Google Business Profile URL" value={data.business.url || ''} onChange={(e) => onChange({ ...data, business: { ...data.business, url: e.target.value } })} icon={<LinkIcon size={16} />} className="bg-white" placeholder="https://maps.google.com/..." />
-
-                {data.business.reviews.length > 0 && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                    <span className="text-xs font-medium text-slate-600">
-                      Found {data.business.reviews.length} reviews
-                    </span>
-                    <label className="flex items-center cursor-pointer">
-                      <span className="mr-2 text-xs text-slate-600">Show Reviews</span>
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={data.business.showReviews}
-                          onChange={(e) => onChange({
-                            ...data,
-                            business: { ...data.business, showReviews: e.target.checked }
-                          })}
-                        />
-                        <div className={`w-9 h-5 bg-slate-200 rounded-full shadow-inner transition-colors ${data.business.showReviews ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                        <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${data.business.showReviews ? 'translate-x-4' : ''}`}></div>
-                      </div>
-                    </label>
+                {tierId === 'free' && (
+                  <button
+                    onClick={() => window.location.href = '/upgrade'}
+                    className="text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-3 py-1.5 rounded-md transition-all flex items-center gap-1"
+                  >
+                    <Sparkles size={12} />
+                    Upgrade to Pro
+                  </button>
+                )}
+              </div>
+              <div className={`bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 ${tierId === 'free' ? 'opacity-50' : ''}`}>
+                {tierId === 'free' ? (
+                  <div className="py-6 text-center text-xs text-slate-600">
+                    Google Business Profile integration available in Pro tier
                   </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <Input label="Business Name (Search)" value={data.business.query} onChange={(e) => onChange({ ...data, business: { ...data.business, query: e.target.value } })} className="bg-white" placeholder="e.g. Acme Corp" />
+                      <div className="mt-auto"><Button onClick={fetchBusinessReviews} disabled={isFetchingReviews || !data.business.query} className="shrink-0 w-24 h-[42px]">{isFetchingReviews ? <Loader2 className="animate-spin" size={16} /> : t('editor.find')}</Button></div>
+                    </div>
+                    <Input label="Google Business Profile URL" value={data.business.url || ''} onChange={(e) => onChange({ ...data, business: { ...data.business, url: e.target.value } })} icon={<LinkIcon size={16} />} className="bg-white" placeholder="https://maps.google.com/..." />
+
+                    {data.business.reviews.length > 0 && (
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                        <span className="text-xs font-medium text-slate-600">
+                          Found {data.business.reviews.length} reviews
+                        </span>
+                        <label className="flex items-center cursor-pointer">
+                          <span className="mr-2 text-xs text-slate-600">Show Reviews</span>
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={data.business.showReviews}
+                              onChange={(e) => onChange({
+                                ...data,
+                                business: { ...data.business, showReviews: e.target.checked }
+                              })}
+                            />
+                            <div className={`w-9 h-5 bg-slate-200 rounded-full shadow-inner transition-colors ${data.business.showReviews ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                            <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${data.business.showReviews ? 'translate-x-4' : ''}`}></div>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -579,8 +683,23 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
             {/* Services */}
             <div className="border-t border-slate-100 pt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-medium text-slate-900 flex items-center gap-2"><Layers size={16} /> {t('editor.services')}</h3>
-                <button onClick={addService} className="text-xs text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md"><Plus size={14} /> {t('editor.addService')}</button>
+                <h3 className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                  <Layers size={16} /> {t('editor.services')}
+                  <span className="text-xs text-slate-500 font-normal">
+                    ({(data.services || []).length}/{maxServices === 999 ? '∞' : maxServices})
+                  </span>
+                </h3>
+                <button
+                  onClick={addService}
+                  disabled={(data.services || []).length >= maxServices}
+                  className={`text-xs font-medium flex items-center gap-1 px-2 py-1 rounded-md ${
+                    (data.services || []).length >= maxServices
+                      ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
+                      : 'text-blue-600 hover:text-blue-700 bg-blue-50'
+                  }`}
+                >
+                  <Plus size={14} /> {t('editor.addService')}
+                </button>
               </div>
               <div className="space-y-3">
                 {(data.services || []).map((service, index) => (
@@ -598,14 +717,48 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
                     </div>
                   </div>
                 ))}
+
+                {/* Upgrade prompt when at limit for Free tier */}
+                {tierId === 'free' && (data.services || []).length >= maxServices && maxServices > 0 && (
+                  <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Sparkles size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-slate-900 mb-1">Want more services?</p>
+                        <p className="text-xs text-slate-600 mb-3">Upgrade to Pro to add up to 10 services and showcase more of your offerings!</p>
+                        <button
+                          onClick={() => window.location.href = '/upgrade'}
+                          className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-2 rounded-lg transition-all"
+                        >
+                          Upgrade to Pro
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Projects */}
             <div className="border-t border-slate-100 pt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-medium text-slate-900 flex items-center gap-2"><FolderKanban size={16} /> {t('editor.projects')}</h3>
-                <button onClick={addProject} className="text-xs text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md"><Plus size={14} /> {t('editor.addProject')}</button>
+                <h3 className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                  <FolderKanban size={16} /> {t('editor.projects')}
+                  <span className="text-xs text-slate-500 font-normal">
+                    ({(data.projects || []).length}/{maxProjects === 999 ? '∞' : maxProjects})
+                  </span>
+                </h3>
+                <button
+                  onClick={addProject}
+                  disabled={(data.projects || []).length >= maxProjects}
+                  className={`text-xs font-medium flex items-center gap-1 px-2 py-1 rounded-md ${
+                    (data.projects || []).length >= maxProjects
+                      ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
+                      : 'text-blue-600 hover:text-blue-700 bg-blue-50'
+                  }`}
+                >
+                  <Plus size={14} /> {t('editor.addProject')}
+                </button>
               </div>
               <div className="space-y-3">
                 {(data.projects || []).map((project, index) => (
@@ -638,6 +791,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
                     </div>
                   </div>
                 ))}
+
+                {/* Upgrade prompt when at limit for Free tier */}
+                {tierId === 'free' && (data.projects || []).length >= maxProjects && maxProjects > 0 && (
+                  <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Sparkles size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-slate-900 mb-1">Want more projects?</p>
+                        <p className="text-xs text-slate-600 mb-3">Upgrade to Pro to add up to 10 projects and build an impressive portfolio!</p>
+                        <button
+                          onClick={() => window.location.href = '/upgrade'}
+                          className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-2 rounded-lg transition-all"
+                        >
+                          Upgrade to Pro
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -646,6 +818,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
 
         {activeSection === 'links' && (
           <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                <LinkIcon size={16} /> Social Links
+                <span className="text-xs text-slate-500 font-normal">
+                  ({data.links.length}/{maxLinks === 999 ? '∞' : maxLinks})
+                </span>
+              </h3>
+            </div>
             {data.links.map((link, index) => (
               <div key={link.id} draggable onDragStart={(e) => handleDragStart(e, 'link', index)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, 'link', index)} className={`bg-slate-50 p-4 rounded-xl border border-slate-200 group transition-all hover:shadow-sm ${draggedItem?.type === 'link' && draggedItem?.index === index ? 'opacity-50 border-dashed border-blue-400' : ''}`}>
                 <div className="flex justify-between items-start mb-3">
@@ -669,7 +849,39 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ data, onChange }) => {
                 </div>
               </div>
             ))}
-            <Button variant="secondary" fullWidth onClick={addLink} className="border-dashed border-2 border-slate-200 bg-transparent hover:bg-slate-50 text-slate-500 h-12" icon={<Plus size={18} />}>Add New Link</Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={addLink}
+              disabled={data.links.length >= maxLinks}
+              className={`border-dashed border-2 h-12 ${
+                data.links.length >= maxLinks
+                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'border-slate-200 bg-transparent hover:bg-slate-50 text-slate-500'
+              }`}
+              icon={<Plus size={18} />}
+            >
+              Add New Link
+            </Button>
+
+            {/* Upgrade prompt when at limit for Free tier */}
+            {tierId === 'free' && data.links.length >= maxLinks && maxLinks > 0 && (
+              <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Sparkles size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900 mb-1">Want unlimited social links?</p>
+                    <p className="text-xs text-slate-600 mb-3">Upgrade to Pro to add unlimited social links and connect all your platforms!</p>
+                    <button
+                      onClick={() => window.location.href = '/upgrade'}
+                      className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-2 rounded-lg transition-all"
+                    >
+                      Upgrade to Pro
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { CardData, ContactSubmission } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { CardData, ContactSubmission, UserSubscription } from '../types';
 import { CardPreview } from './CardPreview';
 import {
     LayoutGrid, Users, PieChart, Settings, Plus, Search, Filter,
@@ -16,6 +17,8 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 
 import { ImageCropper } from './ui/ImageCropper';
 import { uploadImage, supabase } from '../supabase';
+import { SubscriptionManager } from './SubscriptionManager';
+import { getUserSubscription, canCreateCard, getUsageStats } from '../subscriptionUtils';
 
 interface DashboardProps {
     sites: CardData[];
@@ -38,6 +41,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
     const [userEmail, setUserEmail] = useState(userProfile?.email || '');
     const [userName, setUserName] = useState(userProfile?.name || '');
     const [userAvatar, setUserAvatar] = useState(userProfile?.avatar || '');
+
+    // Subscription State
+    const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+    const [usageStats, setUsageStats] = useState<any>(null);
 
     // Analytics & Contacts State
     const [analyticsData, setAnalyticsData] = useState({ views: 0, clicks: 0, ctr: 0 });
@@ -103,6 +110,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
         fetchData();
     }, [activeView, sites]);
 
+    // Fetch user subscription and usage stats
+    React.useEffect(() => {
+        const loadSubscription = async () => {
+            const sub = await getUserSubscription();
+            setSubscription(sub);
+
+            // Load usage stats
+            const stats = await getUsageStats(sites.length);
+            setUsageStats(stats);
+        };
+        loadSubscription();
+    }, [sites.length]);
+
     // Image Upload State
     const [cropModalOpen, setCropModalOpen] = useState(false);
     const [tempProfileImage, setTempProfileImage] = useState<string | null>(null);
@@ -155,6 +175,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
     const [filterStatus, setFilterStatus] = useState<'all' | 'live' | 'draft'>('all');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
+
+    // Handle card creation with limit check
+    const handleCreateCard = async () => {
+        const check = await canCreateCard(sites.length);
+        if (!check.allowed) {
+            alert(check.message || 'Limit reached');
+            handleUpgrade();
+            return;
+        }
+        onCreate();
+    };
 
     // --- Aggregated Data Helpers ---
     // Merge legacy contacts with new DB contacts
@@ -212,8 +243,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
         }
     };
 
+    const navigate = useNavigate();
+
     const handleUpgrade = () => {
-        alert("Redirecting to payment provider...");
+        navigate('/upgrade');
     };
 
     const handleSaveProfile = async () => {
@@ -298,16 +331,88 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                 </div>
 
                 <div className="p-4 border-t border-slate-100">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
-                        <h4 className="font-bold text-sm mb-1">{t('dashboard.upgrade')}</h4>
-                        <p className="text-xs opacity-70 mb-3">{t('dashboard.upgradeDesc')}</p>
-                        <button
-                            onClick={handleUpgrade}
-                            className="w-full py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-semibold transition-colors"
-                        >
-                            {t('dashboard.viewPlans')}
-                        </button>
-                    </div>
+                    {/* Show upgrade prompt for free users */}
+                    {subscription?.tierId === 'free' && (
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
+                            <h4 className="font-bold text-sm mb-1">{t('dashboard.upgrade')}</h4>
+                            <p className="text-xs opacity-70 mb-3">{t('dashboard.upgradeDesc')}</p>
+                            <button
+                                onClick={handleUpgrade}
+                                className="w-full py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-semibold transition-colors"
+                            >
+                                {t('dashboard.viewPlans')}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Show premium badge for Pro/Business users */}
+                    {subscription?.tierId === 'pro' && (
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                    <CheckCircle2 size={18} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-sm">Pro LTD</h4>
+                                    <p className="text-[10px] opacity-80">Lifetime Access</p>
+                                </div>
+                            </div>
+                            <div className="space-y-1 text-[11px] opacity-90">
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>{usageStats?.cards.limit || 5} Sites</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>Advanced Analytics</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>Custom Colors</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>No Branding</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {subscription?.tierId === 'business' && (
+                        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-4 text-white shadow-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                    <Shield size={18} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-sm">Business LTD</h4>
+                                    <p className="text-[10px] opacity-80">Lifetime Access</p>
+                                </div>
+                            </div>
+                            <div className="space-y-1 text-[11px] opacity-90">
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>Unlimited Sites ✨</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>All Pro Features</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>Team Management</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>API Access</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} />
+                                    <span>Custom Domain</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div
                         className="flex items-center gap-3 mt-4 px-2 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"
@@ -336,7 +441,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                             {activeView === 'settings' && t('dashboard.settings')}
                         </h1>
                         {activeView === 'links' && (
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium hidden sm:inline-block">{filteredSites.length} Sites</span>
+                            <>
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium hidden sm:inline-block">{filteredSites.length} Sites</span>
+                                {usageStats && !usageStats.cards.unlimited && (
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium hidden sm:inline-block ${
+                                        usageStats.cards.percentage >= 100 ? 'bg-red-100 text-red-700' :
+                                        usageStats.cards.percentage >= 80 ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-blue-100 text-blue-700'
+                                    }`}>
+                                        {usageStats.cards.used}/{usageStats.cards.limit} Karten
+                                    </span>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -354,8 +470,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                                         className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 outline-none w-64 transition-all focus:w-72"
                                     />
                                 </div>
-                                {sites.length === 0 && (
-                                    <Button onClick={onCreate} size="sm" icon={<Plus size={16} />}>{t('dashboard.createNew')}</Button>
+                                {/* Always show Create button for premium users, or when no sites */}
+                                {(sites.length === 0 || subscription?.tierId !== 'free') && (
+                                    <Button onClick={handleCreateCard} size="sm" icon={<Plus size={16} />}>
+                                        {subscription?.tierId === 'business' ? t('dashboard.createNew') + ' Site' : t('dashboard.createNew')}
+                                    </Button>
                                 )}
                             </>
                         )}
@@ -408,16 +527,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {/* Create New Card Placeholder */}
-                                {sites.length === 0 && (
+                                {/* Create New Card Placeholder - Always show for premium users */}
+                                {(sites.length === 0 || subscription?.tierId !== 'free') && (
                                     <button
-                                        onClick={onCreate}
-                                        className="group relative aspect-[9/16] md:aspect-auto md:h-[420px] rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-4 hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-300"
+                                        onClick={handleCreateCard}
+                                        className="group relative aspect-[9/16] md:aspect-auto md:h-[420px] rounded-3xl border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center gap-4 hover:border-blue-500 hover:from-blue-50 hover:to-blue-100 transition-all duration-300"
                                     >
-                                        <div className="w-16 h-16 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:scale-110 transition-all">
+                                        <div className="w-16 h-16 rounded-full bg-white shadow-lg border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:scale-110 group-hover:shadow-xl transition-all">
                                             <Plus size={32} />
                                         </div>
-                                        <span className="font-medium text-slate-500 group-hover:text-blue-600">{t('dashboard.createNewCard')}</span>
+                                        <div className="text-center px-4">
+                                            <span className="font-bold text-slate-700 group-hover:text-blue-600 block mb-1">{t('dashboard.createNewCard')}</span>
+                                            {subscription?.tierId === 'business' && (
+                                                <span className="text-xs text-slate-500 group-hover:text-blue-500">Unlimited Sites ✨</span>
+                                            )}
+                                            {subscription?.tierId === 'pro' && usageStats && (
+                                                <span className="text-xs text-slate-500 group-hover:text-blue-500">{usageStats.cards.used}/{usageStats.cards.limit} Sites Used</span>
+                                            )}
+                                        </div>
                                     </button>
                                 )}
 
@@ -716,21 +843,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                                 )}
 
                                 {/* Subscription Section */}
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="p-6 border-b border-slate-100">
-                                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                            <CreditCard size={18} /> Subscription
-                                        </h2>
-                                        <p className="text-sm text-slate-500 mt-1">Manage your plan and billing.</p>
-                                    </div>
-                                    <div className="p-6 flex items-center justify-between">
-                                        <div>
-                                            <div className="font-medium text-slate-900">Starter Plan</div>
-                                            <div className="text-sm text-slate-500">Free forever</div>
-                                        </div>
-                                        <Button onClick={handleUpgrade}>{t('dashboard.upgrade')}</Button>
-                                    </div>
-                                </div>
+                                <SubscriptionManager onUpgrade={handleUpgrade} />
 
                                 {/* Security Section */}
                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -814,6 +927,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ sites, onEdit, onCreate, o
                 </nav>
 
             </main >
+
+            {/* Floating Action Button - Mobile Only for Premium Users */}
+            {activeView === 'links' && subscription?.tierId !== 'free' && (
+                <button
+                    onClick={handleCreateCard}
+                    className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-30 active:scale-95 transition-all"
+                    aria-label="Create New Site"
+                >
+                    <Plus size={24} strokeWidth={2.5} />
+                </button>
+            )}
 
             {/* Share Modal for Dashboard */}
             {

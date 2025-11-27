@@ -4,12 +4,15 @@ import { supabase } from '../supabase';
 import { CardData } from '../types';
 import { THEMES, ICON_MAP, adjustColor, getYoutubeEmbedUrl } from '../constants';
 import { ExternalLink, MapPin, Star, ArrowRight, Layout, Phone, Smartphone, MessageCircle, Mail, X, Send, Loader2, Check } from 'lucide-react';
+import { getUserSubscription } from '../subscriptionUtils';
 
 interface WebPreviewProps {
     data: CardData;
 }
 
 export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
+    const [isPro, setIsPro] = useState(false);
+
     const presetTheme = THEMES.find(t => t.id === data.themeId) || THEMES[0];
 
     // Determine styles for web view
@@ -35,7 +38,7 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
         return <IconComponent size={18} />;
     };
 
-    const videoEmbedUrl = data.video?.enabled && data.video?.url ? getYoutubeEmbedUrl(data.video.url) : null;
+    const videoEmbedUrl = isPro && data.video?.enabled && data.video?.url ? getYoutubeEmbedUrl(data.video.url) : null;
 
     // Analytics & State
     const [showContactModal, setShowContactModal] = useState(false);
@@ -43,6 +46,17 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
     const [contactName, setContactName] = useState('');
     const [contactEmail, setContactEmail] = useState('');
     const [contactMessage, setContactMessage] = useState('');
+
+    // Check subscription tier
+    useEffect(() => {
+        const checkSubscription = async () => {
+            const subscription = await getUserSubscription();
+            if (subscription && subscription.tierId !== 'free') {
+                setIsPro(true);
+            }
+        };
+        checkSubscription();
+    }, []);
 
     useEffect(() => {
         // Track View
@@ -152,13 +166,15 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
                         {(data.projects || []).length > 0 && (
                             <a href="#projects" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Projects</a>
                         )}
-                        <button
-                            onClick={() => setShowContactModal(true)}
-                            className={`px-5 py-2 rounded-full text-sm font-medium text-white shadow-lg hover:opacity-90 transition-all ${gradientClass}`}
-                            style={gradientStyle}
-                        >
-                            Contact Me
-                        </button>
+                        {isPro && (
+                            <button
+                                onClick={() => setShowContactModal(true)}
+                                className={`px-5 py-2 rounded-full text-sm font-medium text-white shadow-lg hover:opacity-90 transition-all ${gradientClass}`}
+                                style={gradientStyle}
+                            >
+                                Contact Me
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -290,17 +306,17 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
                 )}
 
                 {/* Reviews & Contact Grid */}
-                <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <section className={`grid gap-8 ${isPro && data.business?.reviews.length > 0 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
                     {/* Reviews */}
-                    <div className="bg-slate-900 text-white rounded-3xl p-8 md:p-10 flex flex-col justify-between relative overflow-hidden">
-                        <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-20 -mr-20 -mt-20 ${gradientClass}`} style={gradientStyle}></div>
-                        <div className="relative z-10 space-y-8">
-                            <div className="flex items-center gap-2 text-white/60">
-                                <MapPin size={16} />
-                                <span className="text-sm font-medium uppercase tracking-wider">Verified Reviews</span>
-                            </div>
+                    {isPro && data.business?.reviews.length > 0 && (
+                        <div className="bg-slate-900 text-white rounded-3xl p-8 md:p-10 flex flex-col justify-between relative overflow-hidden">
+                            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-20 -mr-20 -mt-20 ${gradientClass}`} style={gradientStyle}></div>
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex items-center gap-2 text-white/60">
+                                    <MapPin size={16} />
+                                    <span className="text-sm font-medium uppercase tracking-wider">Verified Reviews</span>
+                                </div>
 
-                            {data.business?.reviews.length > 0 ? (
                                 <div className="space-y-6">
                                     <div className="text-2xl font-medium leading-relaxed">
                                         "{data.business.reviews[0].text}"
@@ -308,7 +324,7 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">
                                             {data.business.reviews[0].author.charAt(0)}
-                                            0</div>
+                                        </div>
                                         <div>
                                             <div className="font-bold">{data.business.reviews[0].author}</div>
                                             <div className="flex text-yellow-400 gap-0.5">
@@ -317,11 +333,9 @@ export const WebPreview: React.FC<WebPreviewProps> = ({ data }) => {
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="text-white/60 italic">No reviews available yet.</div>
-                            )}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Quick Contact */}
                     <div className="bg-white border border-slate-100 rounded-3xl p-8 md:p-10 flex flex-col justify-center space-y-8">

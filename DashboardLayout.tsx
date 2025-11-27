@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout as LayoutIcon, Share2, Smartphone, Monitor, ArrowLeft, Check, LogOut } from 'lucide-react';
-import { CardData, Tab, ViewMode } from './types';
+import { CardData, Tab, ViewMode, SiteLimitInfo } from './types';
 import { INITIAL_DATA } from './constants';
 import { Button } from './components/ui/Button';
 import { EditorPanel } from './components/EditorPanel';
@@ -133,14 +133,31 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
     };
 
     const handleCreateSite = async () => {
-        if (sites.length >= 1) {
-            alert("You can only have one site.");
-            return;
-        }
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('You must be logged in to create a site');
+                return;
+            }
+
+            // Check tier limits using RPC function from database
+            const { data: limitInfo, error: limitError } = await supabase
+                .rpc('get_site_limit_info', { user_uuid: user.id })
+                .single();
+
+            if (limitError) {
+                console.error('Error checking site limits:', limitError);
+                alert('Unable to verify site limits. Please try again.');
+                return;
+            }
+
+            const typedLimitInfo = limitInfo as SiteLimitInfo;
+
+            if (!typedLimitInfo.can_create) {
+                // Show upgrade prompt if at limit
+                const tierName = typedLimitInfo.tier_id === 'free' ? 'Free' : typedLimitInfo.tier_id === 'pro' ? 'Pro' : 'Business';
+                alert(`You've reached your limit of ${typedLimitInfo.max_allowed} site(s) on the ${tierName} plan.\n\nUpgrade to create more sites!`);
+                navigate('/upgrade');
                 return;
             }
 
@@ -266,6 +283,26 @@ const DashboardLayout: React.FC<AppProps> = ({ onLogout }) => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
+
+                // Check tier limits before duplicating
+                const { data: limitInfo, error: limitError } = await supabase
+                    .rpc('get_site_limit_info', { user_uuid: user.id })
+                    .single();
+
+                if (limitError) {
+                    console.error('Error checking site limits:', limitError);
+                    alert('Unable to verify site limits. Please try again.');
+                    return;
+                }
+
+                const typedLimitInfo = limitInfo as SiteLimitInfo;
+
+                if (!typedLimitInfo.can_create) {
+                    const tierName = typedLimitInfo.tier_id === 'free' ? 'Free' : typedLimitInfo.tier_id === 'pro' ? 'Pro' : 'Business';
+                    alert(`You've reached your limit of ${typedLimitInfo.max_allowed} site(s) on the ${tierName} plan.\n\nUpgrade to duplicate more sites!`);
+                    navigate('/upgrade');
+                    return;
+                }
 
                 const newSiteData = {
                     ...site,

@@ -15,18 +15,45 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 0,
     stripePriceId: undefined,
     features: {
-      basicAnalytics: true,
-      standardThemes: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
       qrCode: true,
+      standardThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Advanced Features (NOT included in Free)
+      customColors: false,
+      customFonts: false,
+      allThemes: false,
+      removeBranding: false,
+      advancedAnalytics: false,
+      contactForm: false,
+      leadCollection: false,
+      services: false,
+      projects: false,
+      videoIntegration: false,
+      voiceIntro: false,
+      customDomain: false,
+      prioritySupport: false,
+      apiAccess: false,
+      teamManagement: false,
+      whiteLabel: false,
+      dedicatedSupport: false,
+      bulkOperations: false,
+      exportData: false,
+      lifetimeAccess: false,
     },
     limits: {
       maxCards: 1,
-      maxLinks: 5,
+      maxLinks: 3,
       analyticsDays: 7,
       qrScansMonthly: 100,
-      maxServices: 0,
-      maxProjects: 0,
+      maxServices: 2,
+      maxProjects: 2,
       contactForm: false,
+      storageGb: 0.1, // 100MB
     },
   },
   {
@@ -35,25 +62,47 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 89,
     stripePriceId: 'price_1SXJTN2EeXK7mLiF7sYKU680', // Pro Lifetime Deal
     features: {
-      basicAnalytics: true,
-      advancedAnalytics: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
+      qrCode: true,
       standardThemes: true,
-      allThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Pro Features
       customColors: true,
+      customFonts: true,
+      allThemes: true,
       removeBranding: true,
+      advancedAnalytics: true,
+      contactForm: true,
       leadCollection: true,
-      prioritySupport: true,
+      services: true,
+      projects: true,
       videoIntegration: true,
+      voiceIntro: true,
+      customDomain: true,
+      prioritySupport: true,
+      exportData: true,
       lifetimeAccess: true,
+
+      // Business Features (NOT included in Pro)
+      apiAccess: false,
+      teamManagement: false,
+      whiteLabel: false,
+      dedicatedSupport: false,
+      bulkOperations: false,
     },
     limits: {
       maxCards: 5,
       maxLinks: 999,
-      analyticsDays: 90,
-      qrScansMonthly: 999999,
+      analyticsDays: 999999, // Forever
+      qrScansMonthly: 999999, // Unlimited
       maxServices: 10,
       maxProjects: 10,
       contactForm: true,
+      storageGb: 5,
     },
   },
   {
@@ -62,32 +111,49 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     priceLifetime: 249,
     stripePriceId: 'price_1SXJUo2EeXK7mLiFDCXcvhXw', // Business Lifetime Deal
     features: {
-      basicAnalytics: true,
-      advancedAnalytics: true,
+      // Core Features
+      digitalCards: true,
+      socialLinks: true,
+      qrCode: true,
       standardThemes: true,
-      allThemes: true,
+      basicAnalytics: true,
+      profileCustomization: true,
+
+      // Pro Features
       customColors: true,
+      customFonts: true,
+      allThemes: true,
       removeBranding: true,
+      advancedAnalytics: true,
+      contactForm: true,
       leadCollection: true,
-      prioritySupport: true,
+      services: true,
+      projects: true,
       videoIntegration: true,
-      teamManagement: true,
-      apiAccess: true,
+      voiceIntro: true,
       customDomain: true,
-      crmIntegrations: true,
+      prioritySupport: true,
+      exportData: true,
+      lifetimeAccess: true,
+
+      // Business Features
+      apiAccess: true,
+      teamManagement: true,
       whiteLabel: true,
       dedicatedSupport: true,
-      lifetimeAccess: true,
+      bulkOperations: true,
       unlimitedEverything: true,
     },
     limits: {
-      maxCards: 999999,
-      maxLinks: 999999,
-      analyticsDays: 999999,
-      qrScansMonthly: 999999,
-      maxServices: 999,
-      maxProjects: 999,
+      maxCards: 999999, // Unlimited
+      maxLinks: 999999, // Unlimited
+      analyticsDays: 999999, // Forever
+      qrScansMonthly: 999999, // Unlimited
+      maxServices: 999, // Unlimited
+      maxProjects: 999, // Unlimited
       contactForm: true,
+      storageGb: 50,
+      teamMembers: 5,
     },
   },
 ];

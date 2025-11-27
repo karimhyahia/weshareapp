@@ -5,6 +5,7 @@ import { CardData, Theme, ContactSubmission } from '../types';
 import { THEMES, ICON_MAP, adjustColor, getContrastColor, getYoutubeEmbedUrl } from '../constants';
 import { ExternalLink, Share2, Layout, ChevronDown, ChevronUp, Star, MapPin, Play, Pause, UserPlus, Contact, Phone, Smartphone, MessageCircle, Video, Send, ArrowRight, Mail, Loader2, Check } from 'lucide-react';
 import { supabase } from '../supabase';
+import { getUserSubscription } from '../subscriptionUtils';
 
 interface CardPreviewProps {
     data: CardData;
@@ -42,6 +43,7 @@ export const CardPreview: React.FC<CardPreviewProps> = ({ data, className = '', 
 
     const [showAllServices, setShowAllServices] = useState(false);
     const [showExchangeModal, setShowExchangeModal] = useState(false);
+    const [showBranding, setShowBranding] = useState(true); // Show branding by default for Free tier
 
     // Exchange Contact Form State
     const [exchangeName, setExchangeName] = useState('');
@@ -60,6 +62,20 @@ export const CardPreview: React.FC<CardPreviewProps> = ({ data, className = '', 
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isPro, setIsPro] = useState(false);
+
+    // Check subscription to determine features availability
+    useEffect(() => {
+        const checkSubscription = async () => {
+            const subscription = await getUserSubscription();
+            // Hide branding for Pro and Business users (show only for Free tier)
+            if (subscription && subscription.tierId !== 'free') {
+                setShowBranding(false);
+                setIsPro(true);
+            }
+        };
+        checkSubscription();
+    }, []);
 
     const getIcon = (iconKey: string) => {
         const IconComponent = ICON_MAP[iconKey] || ExternalLink;
@@ -188,11 +204,11 @@ END:VCARD`;
     const projects = data.projects || [];
 
     const reviews = data.business?.reviews || [];
-    const showReviews = data.business?.showReviews && reviews.length > 0;
+    const showReviews = isPro && data.business?.showReviews && reviews.length > 0;
 
     const hasContactQuickActions = data.profile.phone || data.profile.mobile || data.profile.whatsapp;
 
-    const videoEmbedUrl = data.video?.enabled && data.video?.url ? getYoutubeEmbedUrl(data.video.url) : null;
+    const videoEmbedUrl = isPro && data.video?.enabled && data.video?.url ? getYoutubeEmbedUrl(data.video.url) : null;
 
     return (
         <div
@@ -260,7 +276,7 @@ END:VCARD`;
                             {data.profile.title || 'Job Title'}
                         </p>
 
-                        {data.profile.voiceIntroUrl && (
+                        {isPro && data.profile.voiceIntroUrl && (
                             <div className="mb-6 w-full max-w-[200px] animate-fade-in">
                                 <audio ref={audioRef} src={data.profile.voiceIntroUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
                                 <button
@@ -488,7 +504,7 @@ END:VCARD`;
                     </div>
 
                     {/* Contact Form */}
-                    {data.contactForm?.enabled && (
+                    {isPro && data.contactForm?.enabled && (
                         <div className="mb-8 animate-fade-in w-full">
                             <div className={`p-5 rounded-2xl backdrop-blur-md border ${glassClass} ${borderColorClass}`}>
                                 <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
@@ -576,9 +592,11 @@ END:VCARD`;
                         </div>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-white/10 text-center">
-                        <span className="text-[10px] opacity-50 uppercase tracking-widest">WeShare.Site</span>
-                    </div>
+                    {showBranding && (
+                        <div className="mt-6 pt-4 border-t border-white/10 text-center">
+                            <span className="text-[10px] opacity-50 uppercase tracking-widest">WeShare.Site</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Exchange Contact Modal Overlay */}

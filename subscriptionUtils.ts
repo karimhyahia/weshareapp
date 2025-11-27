@@ -1,6 +1,6 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from './supabase';
-import { SubscriptionTier, SubscriptionTierId } from './types';
+import { SubscriptionTier, SubscriptionTierId, UserSubscription } from './types';
 
 // Initialize Stripe
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
@@ -168,7 +168,7 @@ export function getSubscriptionTier(tierId: SubscriptionTierId): SubscriptionTie
 /**
  * Get user's current subscription
  */
-export async function getUserSubscription() {
+export async function getUserSubscription(): Promise<UserSubscription | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -185,20 +185,20 @@ export async function getUserSubscription() {
     console.log('Raw subscription data from database:', data);
 
     // Map snake_case to camelCase if needed
-    if (data && data.tier_id) {
+    if (data && (data as any).tier_id) {
       return {
-        subscriptionId: data.subscription_id,
-        tierId: data.tier_id,
-        tierName: data.tier_name,
-        status: data.status,
-        purchasedAt: data.purchased_at,
-        amountPaid: data.amount_paid,
-        features: data.features,
-        limits: data.limits,
-      };
+        subscriptionId: (data as any).subscription_id,
+        tierId: (data as any).tier_id,
+        tierName: (data as any).tier_name,
+        status: (data as any).status,
+        purchasedAt: (data as any).purchased_at,
+        amountPaid: (data as any).amount_paid,
+        features: (data as any).features,
+        limits: (data as any).limits,
+      } as UserSubscription;
     }
 
-    return data;
+    return data as UserSubscription;
   } catch (error) {
     console.error('Error in getUserSubscription:', error);
     return null;

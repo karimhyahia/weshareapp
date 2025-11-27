@@ -106,7 +106,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
                   ? 'Free forever'
                   : isLifetime
                     ? `Lifetime Access • €${subscription.amountPaid || (subscription.tierId === 'pro' ? '89' : '249')} one-time`
-                    : `Billed ${subscription.billingCycle || 'monthly'}`}
+                    : `Billed ${(subscription as any).billingCycle || 'monthly'}`}
               </p>
             </div>
             <div className={`px-4 py-2 rounded-full text-sm font-bold ${isLifetime ? 'bg-white/20 text-white' : getStatusBadgeColor(subscription.status)}`}>
@@ -117,25 +117,25 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
 
         <div className="p-6 space-y-6">
           {/* Status Messages */}
-          {subscription.status === 'trialing' && subscription.trialEnd && (
+          {subscription.status === 'trialing' && (subscription as any).trialEnd && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
               <div>
                 <p className="font-medium text-blue-900">Free Trial Active</p>
                 <p className="text-sm text-blue-700 mt-1">
-                  Your trial ends on {new Date(subscription.trialEnd).toLocaleDateString()}
+                  Your trial ends on {new Date((subscription as any).trialEnd).toLocaleDateString()}
                 </p>
               </div>
             </div>
           )}
 
-          {subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd && (
+          {(subscription as any).cancelAtPeriodEnd && (subscription as any).currentPeriodEnd && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="text-yellow-600 shrink-0 mt-0.5" size={20} />
               <div>
                 <p className="font-medium text-yellow-900">Subscription Ending</p>
                 <p className="text-sm text-yellow-700 mt-1">
-                  Your subscription will end on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                  Your subscription will end on {new Date((subscription as any).currentPeriodEnd).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -170,13 +170,13 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onUpgr
             </div>
           )}
 
-          {!isFree && !isLifetime && subscription.currentPeriodEnd && (
+          {!isFree && !isLifetime && (subscription as any).currentPeriodEnd && (
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2 text-slate-600">
                 <Calendar size={18} />
                 <span>Next billing date:</span>
                 <span className="font-medium text-slate-900">
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                  {new Date((subscription as any).currentPeriodEnd).toLocaleDateString()}
                 </span>
               </div>
             </div>
